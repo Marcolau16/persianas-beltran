@@ -9,11 +9,11 @@
 const DEFAULT_RESPONSIBLES = [
   {
     id: 'resp-1',
-    name: 'Ing. Roberto Alarcón'
+    name: 'Malio Beltran'
   },
   {
     id: 'resp-2',
-    name: 'Lic. Mariana Soto'
+    name: 'Alma Carrazco'
   }
 ];
 
@@ -119,7 +119,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadStorageData() {
   const savedResp = localStorage.getItem('cotizador_responsibles');
-  state.responsibles = savedResp ? JSON.parse(savedResp) : DEFAULT_RESPONSIBLES;
+  if (!savedResp || (savedResp && (savedResp.includes('Roberto Alarcón') || savedResp.includes('Mariana Soto')))) {
+    state.responsibles = DEFAULT_RESPONSIBLES;
+    localStorage.setItem('cotizador_responsibles', JSON.stringify(DEFAULT_RESPONSIBLES));
+  } else {
+    state.responsibles = JSON.parse(savedResp);
+  }
 
   const savedProd = localStorage.getItem('cotizador_products');
   if (!savedProd || (savedProd && savedProd.includes('Vidrio Templado'))) {
