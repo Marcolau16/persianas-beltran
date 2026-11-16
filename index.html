@@ -28,52 +28,52 @@
   </script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="styles.css?v=2.1">
+  <link rel="stylesheet" href="styles.css?v=2.2">
 </head>
 <body class="bg-slate-100/70 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
 
-  <!-- NAVBAR / HEADER (AZUL, BLANCO Y NEGRO) -->
-  <header class="bg-white border-b-2 border-slate-900 sticky top-0 z-30 shadow-md print:hidden">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
+  <!-- NAVBAR / HEADER (AZUL, BLANCO Y NEGRO - 100% RESPONSIVE MÓVIL) -->
+  <header class="bg-white border-b-2 border-slate-900 sticky top-0 z-30 shadow-md print:hidden w-full">
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8">
+      <div class="flex items-center justify-between h-14 sm:h-16 gap-1">
         
         <!-- Logo & Titulo Persianas Beltran HMO -->
-        <div class="flex items-center space-x-3">
-          <div class="w-11 h-11 rounded-xl bg-slate-950 border border-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-900/30 relative overflow-hidden group">
+        <div class="flex items-center space-x-2 sm:space-x-3 min-w-0 flex-shrink">
+          <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-slate-950 border border-blue-600 flex-shrink-0 flex items-center justify-center text-white shadow-sm relative overflow-hidden">
             <div class="absolute inset-0 bg-gradient-to-tr from-blue-700 via-blue-600 to-slate-950 opacity-90"></div>
-            <span class="font-black text-sm tracking-widest text-white relative z-10">PB</span>
+            <span class="font-black text-xs sm:text-sm tracking-widest text-white relative z-10">PB</span>
           </div>
-          <div>
-            <div class="flex items-center space-x-2">
-              <h1 class="text-base sm:text-lg font-black text-slate-950 leading-tight tracking-tight" id="headerCompanyName">Persianas Beltran HMO</h1>
-              <span class="px-2 py-0.5 text-[10px] bg-blue-600 text-white font-extrabold rounded uppercase tracking-wider shadow-sm">HMO</span>
+          <div class="min-w-0">
+            <div class="flex items-center space-x-1 sm:space-x-2">
+              <h1 class="text-xs sm:text-base font-black text-slate-950 leading-tight tracking-tight truncate" id="headerCompanyName">Persianas Beltran HMO</h1>
+              <span class="px-1.5 py-0.2 text-[9px] bg-blue-600 text-white font-extrabold rounded uppercase tracking-wider flex-shrink-0">HMO</span>
             </div>
-            <p class="text-xs text-slate-500 font-medium">Fabricación, Venta e Instalación a la Medida</p>
+            <p class="text-[10px] sm:text-xs text-slate-500 font-medium hidden sm:block truncate">Fabricación, Venta e Instalación</p>
           </div>
         </div>
 
-        <!-- Navegación de Pestañas -->
-        <nav class="flex items-center space-x-1 sm:space-x-2">
-          <button onclick="switchTab('tab-cotizador')" id="btn-tab-cotizador" class="nav-btn active flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
-            <i data-lucide="file-plus-2" class="w-4 h-4 mr-2"></i>
-            <span>Nueva Cotización</span>
+        <!-- Navegación de Pestañas (Iconos compactos en celular, texto completo en tablet/PC) -->
+        <nav class="flex items-center space-x-0.5 sm:space-x-1 flex-shrink-0">
+          <button onclick="switchTab('tab-cotizador')" id="btn-tab-cotizador" class="nav-btn active flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all" title="Nueva Cotización">
+            <i data-lucide="file-plus-2" class="w-4 h-4 md:mr-1.5"></i>
+            <span class="hidden md:inline">Cotizar</span>
           </button>
-          <button onclick="switchTab('tab-productos')" id="btn-tab-productos" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
-            <i data-lucide="package" class="w-4 h-4 mr-2"></i>
-            <span>Catálogo</span>
-            <span id="badge-products-count" class="ml-1.5 px-1.5 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full font-semibold">0</span>
+          <button onclick="switchTab('tab-productos')" id="btn-tab-productos" class="nav-btn flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all" title="Catálogo de Productos">
+            <i data-lucide="package" class="w-4 h-4 md:mr-1"></i>
+            <span class="hidden md:inline">Catálogo</span>
+            <span id="badge-products-count" class="ml-1 px-1 py-0.2 text-[10px] bg-slate-200 text-slate-700 rounded-full font-bold">0</span>
           </button>
-          <button onclick="switchTab('tab-responsables')" id="btn-tab-responsables" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
-            <i data-lucide="users" class="w-4 h-4 mr-2"></i>
-            <span>Responsables</span>
-            <span id="badge-responsibles-count" class="ml-1.5 px-1.5 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full font-semibold">0</span>
+          <button onclick="switchTab('tab-responsables')" id="btn-tab-responsables" class="nav-btn flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all" title="Responsables">
+            <i data-lucide="users" class="w-4 h-4 md:mr-1"></i>
+            <span class="hidden md:inline">Responsables</span>
+            <span id="badge-responsibles-count" class="ml-1 px-1 py-0.2 text-[10px] bg-slate-200 text-slate-700 rounded-full font-bold">0</span>
           </button>
-          <button onclick="switchTab('tab-historial')" id="btn-tab-historial" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
-            <i data-lucide="history" class="w-4 h-4 mr-2"></i>
-            <span>Historial</span>
-            <span id="badge-history-count" class="ml-1.5 px-1.5 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full font-semibold">0</span>
+          <button onclick="switchTab('tab-historial')" id="btn-tab-historial" class="nav-btn flex items-center px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all" title="Historial">
+            <i data-lucide="history" class="w-4 h-4 md:mr-1"></i>
+            <span class="hidden md:inline">Historial</span>
+            <span id="badge-history-count" class="ml-1 px-1 py-0.2 text-[10px] bg-slate-200 text-slate-700 rounded-full font-bold">0</span>
           </button>
-          <button onclick="switchTab('tab-config')" id="btn-tab-config" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all" title="Configuración de la Empresa">
+          <button onclick="switchTab('tab-config')" id="btn-tab-config" class="nav-btn flex items-center p-1.5 sm:p-2 rounded-lg text-xs sm:text-sm font-medium transition-all" title="Configuración">
             <i data-lucide="settings" class="w-4 h-4"></i>
           </button>
         </nav>
@@ -82,40 +82,40 @@
   </header>
 
   <!-- CONTENIDO PRINCIPAL -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-2 sm:px-6 lg:px-8 py-3 sm:py-6 overflow-x-hidden">
 
     <!-- ========================================== -->
     <!-- PESTAÑA 1: NUEVA COTIZACIÓN                -->
     <!-- ========================================== -->
-    <div id="tab-cotizador" class="tab-content space-y-6">
+    <div id="tab-cotizador" class="tab-content space-y-4 sm:space-y-6">
 
-      <!-- Barra Superior de Acciones Rápidas -->
-      <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="flex items-center space-x-3">
-          <div class="bg-blue-50 text-blue-700 p-2 rounded-lg">
-            <i data-lucide="file-text" class="w-5 h-5"></i>
+      <!-- Barra Superior de Acciones Rápidas (Adaptable a celular) -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center space-x-2.5">
+          <div class="bg-blue-50 text-blue-700 p-2 rounded-lg flex-shrink-0">
+            <i data-lucide="file-text" class="w-4 h-4 sm:w-5 sm:h-5"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="flex items-center space-x-2">
               <span class="text-xs uppercase tracking-wider font-semibold text-slate-400">Folio:</span>
-              <input type="text" id="quoteFolio" class="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300 w-28 text-sm focus:bg-white focus:outline-blue-500" value="COT-1001">
+              <input type="text" id="quoteFolio" class="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300 w-24 sm:w-28 text-xs sm:text-sm focus:bg-white focus:outline-blue-500" value="COT-1001">
             </div>
-            <p class="text-xs text-slate-500 mt-0.5">Genera y calcula cotizaciones personalizadas</p>
+            <p class="text-[10px] sm:text-xs text-slate-500 mt-0.5 truncate">Cálculo exacto por metros lineales y m²</p>
           </div>
         </div>
 
-        <div class="flex items-center space-x-2">
-          <button type="button" onclick="resetQuoteForm()" class="px-3 py-2 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center transition">
-            <i data-lucide="rotate-ccw" class="w-4 h-4 mr-1.5"></i>
-            Nueva / Limpiar
+        <div class="grid grid-cols-3 sm:flex items-center gap-1.5 sm:space-x-2">
+          <button type="button" onclick="resetQuoteForm()" class="px-2 sm:px-3 py-2 text-xs sm:text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition border border-slate-200 sm:border-0 font-medium">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:mr-1.5"></i>
+            <span class="hidden xs:inline">Nueva</span>
           </button>
-          <button type="button" onclick="openPreviewModal()" class="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-900 text-white rounded-lg flex items-center shadow-sm transition font-medium">
-            <i data-lucide="eye" class="w-4 h-4 mr-1.5"></i>
-            Vista Previa
+          <button type="button" onclick="openPreviewModal()" class="px-2 sm:px-4 py-2 text-xs sm:text-sm bg-slate-900 hover:bg-black text-white rounded-lg flex items-center justify-center shadow-sm transition font-medium">
+            <i data-lucide="eye" class="w-3.5 h-3.5 sm:mr-1.5"></i>
+            <span>Previa</span>
           </button>
-          <button type="button" onclick="printQuote()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center shadow-sm shadow-blue-500/20 transition font-medium">
-            <i data-lucide="printer" class="w-4 h-4 mr-1.5"></i>
-            Imprimir / Guardar PDF
+          <button type="button" onclick="printQuote()" class="px-2 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center shadow-sm shadow-blue-500/20 transition font-bold">
+            <i data-lucide="printer" class="w-3.5 h-3.5 sm:mr-1.5"></i>
+            <span>PDF</span>
           </button>
         </div>
       </div>
@@ -273,30 +273,30 @@
             </div>
 
             <!-- CONTENEDOR M²: Ancho x Largo x Piezas -->
-            <div id="m2InputsContainer" class="grid grid-cols-3 gap-2">
+            <div id="m2InputsContainer" class="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <label class="block text-[11px] font-semibold text-slate-700 mb-0.5" id="labelWidth">Ancho (m):</label>
-                <input type="number" id="dimWidth" step="0.01" min="0" placeholder="Ej: 2 (M de ancho)" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
+                <input type="number" id="dimWidth" step="0.01" min="0" placeholder="Ej: 2 (M de ancho)" oninput="calculateItemTotal()" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
               </div>
               <div>
                 <label class="block text-[11px] font-semibold text-slate-700 mb-0.5" id="labelLength">Largo (m):</label>
-                <input type="number" id="dimLength" step="0.01" min="0" placeholder="Ej: 2 (M de largo)" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
+                <input type="number" id="dimLength" step="0.01" min="0" placeholder="Ej: 2 (M de largo)" oninput="calculateItemTotal()" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
               </div>
               <div>
                 <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Piezas / Cantidad:</label>
-                <input type="number" id="dimQuantity" min="1" value="1" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-center">
+                <input type="number" id="dimQuantity" min="1" value="1" oninput="calculateItemTotal()" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-center">
               </div>
             </div>
 
             <!-- CONTENEDOR METRO LINEAL: Largo x Piezas -->
-            <div id="linealInputsContainer" class="grid grid-cols-2 gap-2 hidden">
+            <div id="linealInputsContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-2 hidden">
               <div>
                 <label class="block text-[11px] font-semibold text-slate-700 mb-0.5" id="labelLinealLength">Largo (m):</label>
-                <input type="number" id="dimLinealLength" step="0.01" min="0" placeholder="Ej: 2 (M de largo)" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
+                <input type="number" id="dimLinealLength" step="0.01" min="0" placeholder="Ej: 2 (M de largo)" oninput="calculateItemTotal()" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
               </div>
               <div>
                 <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Tramos / Piezas:</label>
-                <input type="number" id="dimLinealQuantity" min="1" value="1" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-center">
+                <input type="number" id="dimLinealQuantity" min="1" value="1" oninput="calculateItemTotal()" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-center">
               </div>
             </div>
 
@@ -766,6 +766,6 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="app.js?v=2.1"></script>
+  <script src="app.js?v=2.2"></script>
 </body>
 </html>
