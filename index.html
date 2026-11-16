@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Persianas Beltran HMO - Sistema de Cotizaciones</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#2563eb',
+              600: '#1d4ed8',
+              700: '#1e40af',
+              800: '#1e3a8a',
+              900: '#0f172a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-100/70 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
+
+  <!-- NAVBAR / HEADER (AZUL, BLANCO Y NEGRO) -->
+  <header class="bg-white border-b-2 border-slate-900 sticky top-0 z-30 shadow-md print:hidden">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Titulo Persianas Beltran HMO -->
+        <div class="flex items-center space-x-3">
+          <div class="w-11 h-11 rounded-xl bg-slate-950 border border-blue-600 flex items-center justify-center text-white shadow-md shadow-blue-900/30 relative overflow-hidden group">
+            <div class="absolute inset-0 bg-gradient-to-tr from-blue-700 via-blue-600 to-slate-950 opacity-90"></div>
+            <span class="font-black text-sm tracking-widest text-white relative z-10">PB</span>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h1 class="text-base sm:text-lg font-black text-slate-950 leading-tight tracking-tight" id="headerCompanyName">Persianas Beltran HMO</h1>
+              <span class="px-2 py-0.5 text-[10px] bg-blue-600 text-white font-extrabold rounded uppercase tracking-wider shadow-sm">HMO</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium">Fabricación, Venta e Instalación a la Medida</p>
+          </div>
+        </div>
+
+        <!-- Navegación de Pestañas -->
+        <nav class="flex items-center space-x-1 sm:space-x-2">
+          <button onclick="switchTab('tab-cotizador')" id="btn-tab-cotizador" class="nav-btn active flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
+            <i data-lucide="file-plus-2" class="w-4 h-4 mr-2"></i>
+            <span>Nueva Cotización</span>
+          </button>
+          <button onclick="switchTab('tab-productos')" id="btn-tab-productos" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
+            <i data-lucide="package" class="w-4 h-4 mr-2"></i>
+            <span>Catálogo</span>
+            <span id="badge-products-count" class="ml-1.5 px-1.5 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full font-semibold">0</span>
+          </button>
+          <button onclick="switchTab('tab-responsables')" id="btn-tab-responsables" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
+            <i data-lucide="users" class="w-4 h-4 mr-2"></i>
+            <span>Responsables</span>
+            <span id="badge-responsibles-count" class="ml-1.5 px-1.5 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full font-semibold">0</span>
+          </button>
+          <button onclick="switchTab('tab-historial')" id="btn-tab-historial" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all">
+            <i data-lucide="history" class="w-4 h-4 mr-2"></i>
+            <span>Historial</span>
+            <span id="badge-history-count" class="ml-1.5 px-1.5 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full font-semibold">0</span>
+          </button>
+          <button onclick="switchTab('tab-config')" id="btn-tab-config" class="nav-btn flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all" title="Configuración de la Empresa">
+            <i data-lucide="settings" class="w-4 h-4"></i>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 print:p-0 print:m-0 print:max-w-none">
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 1: NUEVA COTIZACIÓN                -->
+    <!-- ========================================== -->
+    <div id="tab-cotizador" class="tab-content space-y-6">
+
+      <!-- Barra Superior de Acciones Rápidas -->
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center space-x-3">
+          <div class="bg-blue-50 text-blue-700 p-2 rounded-lg">
+            <i data-lucide="file-text" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xs uppercase tracking-wider font-semibold text-slate-400">Folio:</span>
+              <input type="text" id="quoteFolio" class="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded border border-slate-300 w-28 text-sm focus:bg-white focus:outline-blue-500" value="COT-1001">
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Genera y calcula cotizaciones personalizadas</p>
+          </div>
+        </div>
+
+        <div class="flex items-center space-x-2">
+          <button type="button" onclick="resetQuoteForm()" class="px-3 py-2 text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center transition">
+            <i data-lucide="rotate-ccw" class="w-4 h-4 mr-1.5"></i>
+            Nueva / Limpiar
+          </button>
+          <button type="button" onclick="openPreviewModal()" class="px-4 py-2 text-sm bg-slate-800 hover:bg-slate-900 text-white rounded-lg flex items-center shadow-sm transition font-medium">
+            <i data-lucide="eye" class="w-4 h-4 mr-1.5"></i>
+            Vista Previa
+          </button>
+          <button type="button" onclick="printQuote()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center shadow-sm shadow-blue-500/20 transition font-medium">
+            <i data-lucide="printer" class="w-4 h-4 mr-1.5"></i>
+            Imprimir / Guardar PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Tarjeta 1: Información General (Cliente y Responsable) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        <!-- Responsable de la cotización -->
+        <div class="lg:col-span-5 bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-sm font-bold text-slate-900 flex items-center">
+                <i data-lucide="user-check" class="w-4 h-4 mr-2 text-blue-600"></i>
+                Responsable de la Cotización
+              </h2>
+              <!-- BOTÓN REQUERIDO: "Agregar responsable" -->
+              <button type="button" onclick="openAddResponsibleModal()" class="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg flex items-center transition">
+                <i data-lucide="plus" class="w-3.5 h-3.5 mr-1"></i>
+                Agregar responsable
+              </button>
+            </div>
+            
+            <label class="block text-xs font-medium text-slate-600 mb-1">Seleccionar Responsable (Menú desplegable):</label>
+            <div class="relative">
+              <select id="quoteResponsibleSelect" onchange="onResponsibleSelected()" class="w-full bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-lg p-2.5 pr-8 focus:ring-blue-500 focus:border-blue-500 block transition">
+                <option value="">-- Selecciona un responsable --</option>
+              </select>
+            </div>
+
+            <!-- Ficha informativa del responsable seleccionado -->
+            <div id="selectedResponsibleCard" class="mt-3 p-2.5 bg-blue-50/80 border border-blue-200 rounded-lg text-xs flex items-center justify-between hidden">
+              <div class="flex items-center space-x-2">
+                <i data-lucide="user-check" class="w-4 h-4 text-blue-600"></i>
+                <span class="font-bold text-slate-800" id="respCardName">-</span>
+              </div>
+              <span class="text-[10px] bg-blue-100 text-blue-700 px-2 py-0.5 rounded font-semibold">Responsable activo</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 mt-4 pt-3 border-t border-slate-100">
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Fecha Emisión:</label>
+              <input type="date" id="quoteDate" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-500 mb-1">Vigencia:</label>
+              <select id="quoteValidity" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-blue-500">
+                <option value="7 días">7 días</option>
+                <option value="15 días" selected>15 días</option>
+                <option value="30 días">30 días</option>
+                <option value="60 días">60 días</option>
+                <option value="Precio sujeto a cambio">Sujeto a cambio</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quien pidió la cotización (Cliente) -->
+        <div class="lg:col-span-7 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+          <h2 class="text-sm font-bold text-slate-900 flex items-center mb-3">
+            <i data-lucide="user" class="w-4 h-4 mr-2 text-indigo-600"></i>
+            Datos de Quien Pidió la Cotización (Cliente)
+          </h2>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-slate-600 mb-1">
+                Nombre de quien solicita <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="clientName" placeholder="Ej: Arq. Juan Pérez / Constructora Silva" class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500" required>
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono / WhatsApp</label>
+              <input type="tel" id="clientPhone" placeholder="Ej: 55 1234 5678" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico</label>
+              <input type="email" id="clientEmail" placeholder="cliente@correo.com" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-medium text-slate-600 mb-1">Dirección / Lugar de Entrega u Obra (Opcional)</label>
+              <input type="text" id="clientAddress" placeholder="Ej: Av. Reforma 123, Col. Centro" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta 2: Agregar Producto y Pedir Medidas -->
+      <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-100">
+          <div class="flex items-center space-x-2">
+            <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+              <i data-lucide="ruler" class="w-4 h-4"></i>
+            </div>
+            <h2 class="text-sm font-bold text-slate-900">Agregar Producto con Medidas</h2>
+          </div>
+          <span class="text-xs text-slate-500">El precio se calcula automáticamente con base en las medidas ingresadas</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+
+          <!-- Selector de Producto -->
+          <div class="md:col-span-4">
+            <div class="flex items-center justify-between mb-1">
+              <label class="block text-xs font-medium text-slate-700">Producto / Material <span class="text-red-500">*</span></label>
+              <button type="button" onclick="openProductModal()" class="text-[11px] text-blue-600 hover:underline flex items-center font-medium">
+                <i data-lucide="plus" class="w-3 h-3 mr-0.5"></i> Nuevo al catálogo
+              </button>
+            </div>
+            <select id="itemProductSelect" onchange="onItemProductChange()" class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+              <option value="">-- Seleccionar producto del catálogo --</option>
+              <option value="custom">✍️ Producto personalizado / manual</option>
+            </select>
+            
+            <!-- Campo manual si se elige personalizado -->
+            <div id="customProductFields" class="mt-2 space-y-2 hidden">
+              <input type="text" id="customProductName" placeholder="Nombre del producto manual" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg">
+              <div class="grid grid-cols-2 gap-2">
+                <select id="customProductType" onchange="updateDimensionInputs()" class="text-xs p-2 bg-white border border-slate-300 rounded-lg">
+                  <option value="m2">Metro cuadrado (m²)</option>
+                  <option value="lineal">Metro lineal (m)</option>
+                  <option value="pieza">Por Pieza fija</option>
+                </select>
+                <input type="number" id="customProductPrice" placeholder="Precio base $" step="0.01" class="text-xs p-2 bg-white border border-slate-300 rounded-lg">
+              </div>
+            </div>
+          </div>
+
+          <!-- Tipo de Cobro y Precio Base -->
+          <div class="md:col-span-2">
+            <label class="block text-xs font-medium text-slate-700 mb-1">Tipo de Medida</label>
+            <div id="productUnitBadge" class="p-2.5 bg-slate-100 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 text-center flex items-center justify-center space-x-1">
+              <span>Metro cuadrado (m²)</span>
+            </div>
+            <div class="mt-2">
+              <label class="block text-[11px] font-medium text-slate-500 mb-0.5">Precio unitario ($):</label>
+              <input type="number" id="itemPrice" step="0.01" class="w-full text-xs font-semibold p-2 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white" placeholder="0.00">
+            </div>
+          </div>
+
+          <!-- ENTRADA DE MEDIDAS (DINÁMICA: LINEAL O METRO CUADRADO) -->
+          <div class="md:col-span-6 bg-slate-50 p-3 rounded-xl border border-slate-200">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-800 flex items-center">
+                <i data-lucide="maximize-2" class="w-3.5 h-3.5 mr-1 text-blue-600"></i>
+                Medidas requeridas
+              </span>
+              <div class="flex items-center space-x-2">
+                <label class="text-[11px] text-slate-500">Unidad de entrada:</label>
+                <select id="inputUnit" onchange="calculateItemTotal()" class="text-[11px] py-0.5 px-2 bg-white border border-slate-300 rounded">
+                  <option value="m" selected>Metros (m)</option>
+                  <option value="cm">Centímetros (cm)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- CONTENEDOR M²: Ancho x Largo x Piezas -->
+            <div id="m2InputsContainer" class="grid grid-cols-3 gap-2">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5" id="labelWidth">Ancho (m):</label>
+                <input type="number" id="dimWidth" step="0.01" min="0" placeholder="Ej: 2 (M de ancho)" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5" id="labelLength">Largo (m):</label>
+                <input type="number" id="dimLength" step="0.01" min="0" placeholder="Ej: 2 (M de largo)" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Piezas / Cantidad:</label>
+                <input type="number" id="dimQuantity" min="1" value="1" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-center">
+              </div>
+            </div>
+
+            <!-- CONTENEDOR METRO LINEAL: Largo x Piezas -->
+            <div id="linealInputsContainer" class="grid grid-cols-2 gap-2 hidden">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5" id="labelLinealLength">Largo (m):</label>
+                <input type="number" id="dimLinealLength" step="0.01" min="0" placeholder="Ej: 2 (M de largo)" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium">
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Tramos / Piezas:</label>
+                <input type="number" id="dimLinealQuantity" min="1" value="1" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-center">
+              </div>
+            </div>
+
+            <!-- CONTENEDOR PIEZA FIJA -->
+            <div id="piezaInputsContainer" class="grid grid-cols-1 gap-2 hidden">
+              <div>
+                <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Cantidad de piezas:</label>
+                <input type="number" id="dimPiezaQuantity" min="1" value="1" oninput="calculateItemTotal()" class="w-full text-xs p-2 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-medium text-center">
+              </div>
+            </div>
+
+            <!-- Resumen del cálculo en vivo -->
+            <div class="mt-2.5 pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs gap-1">
+              <div class="text-slate-600">
+                <span class="font-medium text-slate-400">Medida:</span>
+                <span id="liveMeasuredTotal" class="font-bold text-slate-800 ml-1">0.00 M de ancho × 0.00 M de largo (0.00 m²)</span>
+              </div>
+              <div>
+                <span class="font-medium text-slate-400">Subtotal partida:</span>
+                <span id="livePartidaSubtotal" class="font-extrabold text-blue-600 text-sm ml-1">$0.00</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Descripción o notas de la partida + Botón Agregar -->
+          <div class="md:col-span-10">
+            <input type="text" id="itemNotes" placeholder="Detalles o especificaciones adicionales (opcional, ej: Acabado mate, biselado 1 pulgada, corte especial...)" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg">
+          </div>
+          <div class="md:col-span-2 flex items-end">
+            <button type="button" onclick="addItemToQuote()" class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs flex items-center justify-center shadow-sm shadow-emerald-500/20 transition">
+              <i data-lucide="plus-circle" class="w-4 h-4 mr-1.5"></i>
+              Agregar
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tarjeta 3: Tabla de Partidas Cotizadas -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-4 bg-slate-50/60 border-b border-slate-200 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="list-ordered" class="w-4 h-4 text-slate-500"></i>
+            <h3 class="font-bold text-sm text-slate-800">Partidas de la Cotización</h3>
+          </div>
+          <span id="quoteItemsCount" class="text-xs bg-slate-200 text-slate-700 px-2 py-0.5 rounded-full font-semibold">0 partidas</span>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-100/75 text-slate-600 uppercase font-bold tracking-wider border-b border-slate-200">
+                <th class="py-3 px-3 w-10 text-center">#</th>
+                <th class="py-3 px-3">Descripción y Producto</th>
+                <th class="py-3 px-3 text-center">Medidas ingresadas</th>
+                <th class="py-3 px-3 text-center">Total Medido</th>
+                <th class="py-3 px-3 text-right">Precio x Metro/U</th>
+                <th class="py-3 px-3 text-right">Importe</th>
+                <th class="py-3 px-2 w-16 text-center">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="quoteItemsTableBody" class="divide-y divide-slate-100">
+              <!-- Renderizado dinámico -->
+              <tr id="emptyItemsRow">
+                <td colspan="7" class="py-8 text-center text-slate-400">
+                  <i data-lucide="shopping-cart" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+                  <p class="font-medium">No has agregado ninguna partida a la cotización</p>
+                  <p class="text-[11px] text-slate-400">Selecciona un producto arriba, ingresa las medidas y haz clic en "Agregar"</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Sección de Totales y Condiciones -->
+        <div class="p-5 bg-slate-50/80 border-t border-slate-200 grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+          <!-- Notas y Condiciones -->
+          <div class="lg:col-span-7 space-y-3">
+            <label class="block text-xs font-bold text-slate-700">Notas y Condiciones de la Cotización:</label>
+            <textarea id="quoteNotes" rows="3" class="w-full text-xs p-2.5 bg-white border border-slate-300 rounded-lg focus:outline-blue-500" placeholder="Condiciones de pago, tiempo de entrega, cuentas bancarias para anticipo..."></textarea>
+            
+            <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+              <span class="font-medium">Sugerencias rápidas:</span>
+              <button type="button" onclick="insertNote('50% de anticipo y 50% contra entrega.')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-slate-100">50% Anticipo</button>
+              <button type="button" onclick="insertNote('Tiempo de entrega: 5 a 7 días hábiles.')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-slate-100">5-7 Días</button>
+              <button type="button" onclick="insertNote('Precios incluyen instalación y flete en zona metropolitana.')" class="px-2 py-0.5 bg-white border border-slate-200 rounded hover:bg-slate-100">Con Instalación</button>
+            </div>
+          </div>
+
+          <!-- Resumen Numérico -->
+          <div class="lg:col-span-5 bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-2 text-xs">
+            <div class="flex justify-between items-center text-slate-600">
+              <span>Subtotal:</span>
+              <span id="summarySubtotal" class="font-semibold text-slate-800">$0.00</span>
+            </div>
+
+            <!-- Descuento -->
+            <div class="flex justify-between items-center text-slate-600">
+              <div class="flex items-center space-x-1">
+                <span>Descuento:</span>
+                <input type="number" id="discountPercent" min="0" max="100" value="0" oninput="calculateQuoteTotals()" class="w-12 text-center text-xs py-0.5 border border-slate-300 rounded">
+                <span>%</span>
+              </div>
+              <span id="summaryDiscount" class="font-semibold text-slate-800">-$0.00</span>
+            </div>
+
+            <!-- IVA -->
+            <div class="flex justify-between items-center text-slate-600 pt-1 border-t border-slate-100">
+              <div class="flex items-center space-x-2">
+                <label class="flex items-center cursor-pointer">
+                  <input type="checkbox" id="includeTax" onchange="calculateQuoteTotals()" checked class="rounded text-blue-600 focus:ring-0 mr-1.5">
+                  <span>IVA (Impuesto):</span>
+                </label>
+                <select id="taxPercent" onchange="calculateQuoteTotals()" class="text-[11px] py-0.5 px-1 bg-slate-50 border border-slate-300 rounded">
+                  <option value="16" selected>16%</option>
+                  <option value="8">8% Frontera</option>
+                  <option value="0">0%</option>
+                </select>
+              </div>
+              <span id="summaryTax" class="font-semibold text-slate-800">$0.00</span>
+            </div>
+
+            <!-- Total Final -->
+            <div class="pt-3 border-t-2 border-slate-200 flex justify-between items-baseline">
+              <div>
+                <span class="text-sm font-bold text-slate-900 block">TOTAL:</span>
+                <span id="totalInWords" class="text-[10px] text-slate-400 font-medium">Cero pesos 00/100 M.N.</span>
+              </div>
+              <span id="summaryTotal" class="text-xl font-black text-blue-700">$0.00</span>
+            </div>
+
+            <!-- Guardar en Historial -->
+            <div class="pt-3">
+              <button type="button" onclick="saveQuoteToHistory()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-sm flex items-center justify-center shadow-md shadow-blue-500/20 transition">
+                <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+                Guardar Cotización
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 2: CATÁLOGO DE PRODUCTOS           -->
+    <!-- ========================================== -->
+    <div id="tab-productos" class="tab-content hidden space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 flex items-center">
+            <i data-lucide="package" class="w-5 h-5 mr-2 text-blue-600"></i>
+            Catálogo de Productos y Precios por Metro
+          </h2>
+          <p class="text-xs text-slate-500">Configura tus productos, materiales y sus tarifas base por metro lineal o cuadrado</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <input type="text" id="searchProductInput" oninput="renderProductsTable()" placeholder="Buscar producto..." class="text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg w-48 focus:outline-blue-500">
+          <button type="button" onclick="openProductModal()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center shadow-sm shadow-blue-500/20 font-medium transition">
+            <i data-lucide="plus" class="w-4 h-4 mr-1.5"></i>
+            Nuevo Producto
+          </button>
+        </div>
+      </div>
+
+      <!-- Tabla de Productos -->
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-100/75 text-slate-600 uppercase font-bold tracking-wider border-b border-slate-200">
+              <th class="py-3 px-4">Producto</th>
+              <th class="py-3 px-4">Categoría</th>
+              <th class="py-3 px-4 text-center">Tipo de Cobro</th>
+              <th class="py-3 px-4 text-right">Precio Base</th>
+              <th class="py-3 px-4">Descripción / Especificación</th>
+              <th class="py-3 px-4 w-24 text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="productsTableBody" class="divide-y divide-slate-100">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 3: RESPONSABLES                    -->
+    <!-- ========================================== -->
+    <div id="tab-responsables" class="tab-content hidden space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 flex items-center">
+            <i data-lucide="users" class="w-5 h-5 mr-2 text-blue-600"></i>
+            Responsables de Cotizaciones
+          </h2>
+          <p class="text-xs text-slate-500">Administra los asesores, vendedores o ingenieros encargados de elaborar las cotizaciones</p>
+        </div>
+        <button type="button" onclick="openAddResponsibleModal()" class="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center shadow-sm shadow-blue-500/20 font-medium transition">
+          <i data-lucide="user-plus" class="w-4 h-4 mr-1.5"></i>
+          Agregar responsable
+        </button>
+      </div>
+
+      <!-- Tarjetas de Responsables -->
+      <div id="responsiblesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Renderizado dinámico -->
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 4: HISTORIAL DE COTIZACIONES       -->
+    <!-- ========================================== -->
+    <div id="tab-historial" class="tab-content hidden space-y-6">
+      <div class="flex flex-wrap items-center justify-between gap-4 bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div>
+          <h2 class="text-base font-bold text-slate-900 flex items-center">
+            <i data-lucide="history" class="w-5 h-5 mr-2 text-blue-600"></i>
+            Historial de Cotizaciones
+          </h2>
+          <p class="text-xs text-slate-500">Consulta, imprime, duplica o actualiza el estado de cotizaciones anteriores</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <input type="text" id="searchHistoryInput" oninput="renderHistoryTable()" placeholder="Buscar por cliente o folio..." class="text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg w-56 focus:outline-blue-500">
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <table class="w-full text-left border-collapse text-xs">
+          <thead>
+            <tr class="bg-slate-100/75 text-slate-600 uppercase font-bold tracking-wider border-b border-slate-200">
+              <th class="py-3 px-4">Folio</th>
+              <th class="py-3 px-4">Fecha</th>
+              <th class="py-3 px-4">Cliente (Quien pidió)</th>
+              <th class="py-3 px-4">Responsable</th>
+              <th class="py-3 px-4 text-center">Partidas</th>
+              <th class="py-3 px-4 text-right">Total</th>
+              <th class="py-3 px-4 text-center">Estado</th>
+              <th class="py-3 px-4 text-center w-32">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody" class="divide-y divide-slate-100">
+            <!-- Renderizado dinámico -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- PESTAÑA 5: CONFIGURACIÓN DE EMPRESA        -->
+    <!-- ========================================== -->
+    <div id="tab-config" class="tab-content hidden max-w-3xl mx-auto space-y-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="text-base font-bold text-slate-900 flex items-center mb-4 pb-2 border-b border-slate-100">
+          <i data-lucide="building-2" class="w-5 h-5 mr-2 text-blue-600"></i>
+          Datos de la Empresa (Para el membrete de la cotización)
+        </h2>
+
+        <form id="companyForm" onsubmit="saveCompanyConfig(event)" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre Comercial de la Empresa</label>
+              <input type="text" id="cfgCompanyName" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Ej: Vidrios y Aluminios del Norte">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">RFC / Identificación Fiscal</label>
+              <input type="text" id="cfgCompanyTaxId" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Ej: VAN-200101-XXX">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Teléfono de Contacto</label>
+              <input type="text" id="cfgCompanyPhone" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Ej: (55) 9876 5432">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Correo Electrónico</label>
+              <input type="email" id="cfgCompanyEmail" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg" placeholder="ventas@tuempresa.com">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Sitio Web / Red Social</label>
+              <input type="text" id="cfgCompanyWebsite" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg" placeholder="www.tuempresa.com">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Dirección Física</label>
+              <input type="text" id="cfgCompanyAddress" class="w-full text-sm p-2 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Calle, Número, Colonia, Ciudad">
+            </div>
+            <div class="sm:col-span-2">
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Condiciones / Términos predeterminados</label>
+              <textarea id="cfgCompanyTerms" rows="3" class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Términos estándar que se cargarán en cada cotización..."></textarea>
+            </div>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button type="submit" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition flex items-center">
+              <i data-lucide="check" class="w-4 h-4 mr-2"></i>
+              Guardar Configuración
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Respaldo y Restauración de Datos -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h3 class="text-sm font-bold text-slate-900 mb-2 flex items-center">
+          <i data-lucide="database" class="w-4 h-4 mr-2 text-indigo-600"></i>
+          Copia de Seguridad y Datos Locales
+        </h3>
+        <p class="text-xs text-slate-500 mb-4">Toda tu información (productos, responsables y cotizaciones) se guarda en tu navegador. Puedes descargar un archivo de respaldo o restablecer los datos de demostración.</p>
+        
+        <div class="flex flex-wrap gap-3">
+          <button type="button" onclick="exportDataBackup()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center transition">
+            <i data-lucide="download" class="w-3.5 h-3.5 mr-1.5"></i>
+            Descargar Respaldo JSON
+          </button>
+          <label class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center transition cursor-pointer">
+            <i data-lucide="upload" class="w-3.5 h-3.5 mr-1.5"></i>
+            Restaurar Respaldo
+            <input type="file" id="importFileInput" onchange="importDataBackup(event)" accept=".json" class="hidden">
+          </label>
+          <button type="button" onclick="resetToDemoData()" class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold flex items-center transition ml-auto">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5 mr-1.5"></i>
+            Restablecer Datos de Ejemplo
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: AGREGAR / EDITAR RESPONSABLE        -->
+  <!-- ========================================== -->
+  <div id="modalResponsible" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden animate-fade-in">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-900" id="modalResponsibleTitle">Agregar Responsable</h3>
+            <p class="text-[11px] text-slate-500">Se guardará y estará disponible en el menú desplegable</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeResponsibleModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="responsibleForm" onsubmit="saveResponsible(event)" class="p-5 space-y-4">
+        <input type="hidden" id="respEditId" value="">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Nombre del Responsable <span class="text-red-500">*</span></label>
+          <input type="text" id="respName" placeholder="Ej: Carlos Mendoza" required autofocus class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition">
+        </div>
+
+        <div class="pt-2 flex items-center justify-end space-x-2">
+          <button type="button" onclick="closeResponsibleModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition flex items-center">
+            <i data-lucide="check" class="w-3.5 h-3.5 mr-1.5"></i>
+            Guardar Responsable
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: AGREGAR / EDITAR PRODUCTO           -->
+  <!-- ========================================== -->
+  <div id="modalProduct" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-md w-full overflow-hidden animate-fade-in">
+      <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+            <i data-lucide="package-plus" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <h3 class="font-bold text-sm text-slate-900" id="modalProductTitle">Nuevo Producto al Catálogo</h3>
+            <p class="text-[11px] text-slate-500">Configura el precio base por metro o pieza</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeProductModal()" class="text-slate-400 hover:text-slate-600 p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="productForm" onsubmit="saveProduct(event)" class="p-5 space-y-3.5">
+        <input type="hidden" id="prodEditId" value="">
+        
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Nombre del Producto / Material <span class="text-red-500">*</span></label>
+          <input type="text" id="prodName" placeholder="Ej: Vidrio Templado 10mm Claro" required class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Categoría</label>
+            <input type="text" id="prodCategory" placeholder="Ej: Vidriería, Cancelería" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-700 mb-1">Tipo de Cobro <span class="text-red-500">*</span></label>
+            <select id="prodUnitType" class="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-lg font-medium">
+              <option value="m2">Metro Cuadrado (m²)</option>
+              <option value="lineal">Metro Lineal (m)</option>
+              <option value="pieza">Pieza / Fijo</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Precio Base ($) <span class="text-red-500">*</span></label>
+          <input type="number" id="prodPrice" step="0.01" min="0" placeholder="0.00" required class="w-full text-sm font-bold p-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+          <span class="text-[11px] text-slate-400 mt-1 block">Precio que se multiplicará por los metros o m² cotizados</span>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">Descripción / Especificación Técnica</label>
+          <textarea id="prodDescription" rows="2" placeholder="Detalles técnicos, calibre, color o acabados..." class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"></textarea>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end space-x-2">
+          <button type="button" onclick="closeProductModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg transition">Cancelar</button>
+          <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition flex items-center">
+            <i data-lucide="check" class="w-3.5 h-3.5 mr-1.5"></i>
+            Guardar Producto
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL / CONTENEDOR: VISTA PREVIA IMPRESIÓN -->
+  <!-- ========================================== -->
+  <div id="modalPreview" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden print:p-0 print:bg-white print:static">
+    <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden print:border-none print:shadow-none print:max-w-none print:max-h-none print:rounded-none">
+      
+      <!-- Barra superior no imprimible -->
+      <div class="p-3 bg-slate-800 text-white flex items-center justify-between print:hidden">
+        <div class="flex items-center space-x-2 text-sm font-semibold">
+          <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
+          <span>Vista Previa de Cotización para Impresión / PDF</span>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button type="button" onclick="window.print()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center shadow transition">
+            <i data-lucide="printer" class="w-3.5 h-3.5 mr-1.5"></i>
+            Imprimir / Guardar como PDF
+          </button>
+          <button type="button" onclick="closePreviewModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Hoja Membretada (Imprimible) -->
+      <div class="overflow-y-auto p-6 sm:p-10 flex-1 bg-white print:p-0 print:overflow-visible" id="printableInvoice">
+        <!-- Renderizado dinámico en app.js -->
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-slate-200 py-3 text-center text-xs text-slate-500 print:hidden mt-auto">
+    <p>Sistema de Cotizaciones con Cálculo por Metros &copy; 2026. Todos los datos se guardan de forma segura en tu equipo local.</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
