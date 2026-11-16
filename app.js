@@ -119,11 +119,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function loadStorageData() {
   const savedResp = localStorage.getItem('cotizador_responsibles');
-  if (!savedResp || (savedResp && (savedResp.includes('Roberto Alarcón') || savedResp.includes('Mariana Soto')))) {
+  if (!savedResp || !savedResp.includes('Malio Beltran')) {
     state.responsibles = DEFAULT_RESPONSIBLES;
     localStorage.setItem('cotizador_responsibles', JSON.stringify(DEFAULT_RESPONSIBLES));
   } else {
-    state.responsibles = JSON.parse(savedResp);
+    try {
+      state.responsibles = JSON.parse(savedResp);
+    } catch (e) {
+      state.responsibles = DEFAULT_RESPONSIBLES;
+    }
   }
 
   const savedProd = localStorage.getItem('cotizador_products');
