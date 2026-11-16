@@ -889,16 +889,22 @@ function renderHistoryTable() {
           <option value="Rechazada" ${q.status === 'Rechazada' ? 'selected' : ''}>Rechazada</option>
         </select>
       </td>
-      <td class="py-3 px-4 text-center">
-        <div class="flex items-center justify-center space-x-1.5">
-          <button type="button" onclick="previewSavedQuote('${q.id}')" class="p-1 text-slate-500 hover:text-blue-600 rounded transition" title="Ver / Imprimir">
-            <i data-lucide="printer" class="w-4 h-4"></i>
+      <td class="py-3 px-3 text-center">
+        <div class="flex items-center justify-center space-x-1 sm:space-x-1.5">
+          <button type="button" onclick="downloadSavedQuotePdf('${q.id}')" class="p-1 text-slate-500 hover:text-blue-600 rounded transition" title="Descargar PDF">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" onclick="shareSavedQuoteViaWhatsApp('${q.id}')" class="p-1 text-slate-500 hover:text-emerald-600 rounded transition" title="Enviar por WhatsApp">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+          </button>
+          <button type="button" onclick="previewSavedQuote('${q.id}')" class="p-1 text-slate-500 hover:text-slate-800 rounded transition" title="Ver Vista Previa">
+            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
           </button>
           <button type="button" onclick="duplicateQuote('${q.id}')" class="p-1 text-slate-500 hover:text-indigo-600 rounded transition" title="Duplicar">
-            <i data-lucide="copy" class="w-4 h-4"></i>
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
           </button>
-          <button type="button" onclick="deleteQuote('${q.id}')" class="p-1 text-slate-500 hover:text-rose-600 rounded transition" title="Eliminar">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          <button type="button" onclick="deleteQuote('${q.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Eliminar">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       </td>
@@ -1138,7 +1144,7 @@ function getCurrentQuoteData() {
 
 function openPreviewModal() {
   if (state.currentQuoteItems.length === 0) {
-    alert('Agrega al menos un producto a la cotización para ver la vista previa.');
+    alert('Agrega al menos una partida a la cotización para ver la vista previa.');
     return;
   }
   const quoteData = getCurrentQuoteData();
@@ -1150,15 +1156,124 @@ function closePreviewModal() {
   document.getElementById('modalPreview').classList.add('hidden');
 }
 
+/**
+ * Descarga directa del archivo PDF en celular o computadora usando html2pdf.js
+ */
+async function downloadQuotePdf(customQuoteData = null) {
+  const quoteData = customQuoteData || getCurrentQuoteData();
+  if (!quoteData || (quoteData.items && quoteData.items.length === 0)) {
+    alert('Agrega al menos una partida antes de descargar el PDF.');
+    return;
+  }
+
+  const invoiceContainer = document.getElementById('printableInvoice');
+  invoiceContainer.innerHTML = buildInvoiceHtml(quoteData);
+
+  const btnModal = document.getElementById('btnDownloadPdfModal');
+  if (btnModal) {
+    btnModal.innerHTML = '<span class="inline-block animate-pulse">Generando PDF...</span>';
+  }
+
+  const cleanFolio = (quoteData.folio || 'COT-1001').replace(/[^a-zA-Z0-9_-]/g, '_');
+  const cleanClient = (quoteData.client && quoteData.client.name ? quoteData.client.name : 'Cliente').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 15);
+  const filename = `Cotizacion_${cleanFolio}_${cleanClient}_Persianas_Beltran.pdf`;
+
+  const opt = {
+    margin: [6, 6, 6, 6],
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+  };
+
+  try {
+    if (window.html2pdf) {
+      await html2pdf().set(opt).from(invoiceContainer).save();
+    } else {
+      openPreviewModal();
+      window.print();
+    }
+  } catch (err) {
+    console.error('Error generando PDF con html2pdf:', err);
+    openPreviewModal();
+    window.print();
+  } finally {
+    if (btnModal) {
+      btnModal.innerHTML = '<i data-lucide="download" class="w-3.5 h-3.5 mr-1"></i> Descargar PDF';
+      if (window.lucide) window.lucide.createIcons();
+    }
+  }
+}
+
+/**
+ * Envío directo y formateado de la cotización por WhatsApp (o Web Share)
+ */
+function shareViaWhatsApp(customQuoteData = null) {
+  const quote = customQuoteData || getCurrentQuoteData();
+  if (!quote || (quote.items && quote.items.length === 0)) {
+    alert('Agrega al menos una partida antes de enviar la cotización.');
+    return;
+  }
+
+  let text = `*COTIZACIÓN - PERSIANAS BELTRAN HMO*\n`;
+  text += `📄 *Folio:* ${quote.folio}\n`;
+  text += `📅 *Fecha:* ${quote.date} | Vigencia: ${quote.validity}\n`;
+  text += `👤 *Cliente:* ${quote.client.name}\n`;
+  text += `👔 *Atendido por:* ${quote.responsible.name}\n`;
+  text += `------------------------------------\n`;
+  text += `*DETALLE DE PARTIDAS:*\n`;
+
+  quote.items.forEach((item, i) => {
+    text += `\n*${i + 1}. ${item.productName}*\n`;
+    text += `   📐 Medida: ${item.dimensionDetails}\n`;
+    text += `   📊 Total: ${item.totalMeasured.toFixed(2)} ${item.unitLabel}\n`;
+    text += `   💰 Precio: $${item.price.toFixed(2)} / ${item.unitLabel}\n`;
+    text += `   💵 Importe: ${formatCurrency(item.subtotal)}\n`;
+  });
+
+  text += `\n------------------------------------\n`;
+  text += `*Subtotal:* ${formatCurrency(quote.totals.subtotal)}\n`;
+  if (quote.totals.discountAmount > 0) {
+    text += `*Descuento (${quote.totals.discountPercent}%):* -${formatCurrency(quote.totals.discountAmount)}\n`;
+  }
+  if (quote.totals.taxAmount > 0) {
+    text += `*IVA (${quote.totals.taxRate}%):* ${formatCurrency(quote.totals.taxAmount)}\n`;
+  }
+  text += `*TOTAL FINAL:* ${formatCurrency(quote.totals.total)}\n`;
+  text += `------------------------------------\n`;
+  if (quote.notes) {
+    text += `📝 *Términos:* ${quote.notes.replace(/\n/g, ' ')}\n`;
+    text += `------------------------------------\n`;
+  }
+  text += `_Persianas Beltran HMO • Fabricación e Instalación a la Medida_\n`;
+  text += `_Hermosillo, Sonora • Tel: (662) 123 4567_`;
+
+  let phone = (quote.client.phone || '').replace(/\D/g, '');
+  if (phone.length === 10) {
+    phone = '52' + phone;
+  }
+
+  const encodedText = encodeURIComponent(text);
+  const waUrl = phone ? `https://wa.me/${phone}?text=${encodedText}` : `https://wa.me/?text=${encodedText}`;
+
+  if (navigator.share) {
+    navigator.share({
+      title: `Cotización ${quote.folio} - Persianas Beltran HMO`,
+      text: text
+    }).catch(() => {
+      window.open(waUrl, '_blank');
+    });
+  } else {
+    window.open(waUrl, '_blank');
+  }
+}
+
 function printQuote() {
   if (state.currentQuoteItems.length === 0) {
     alert('Agrega al menos una partida antes de imprimir.');
     return;
   }
-  openPreviewModal();
-  setTimeout(() => {
-    window.print();
-  }, 250);
+  downloadQuotePdf();
 }
 
 function previewSavedQuote(id) {
@@ -1166,6 +1281,18 @@ function previewSavedQuote(id) {
   if (!quote) return;
   document.getElementById('printableInvoice').innerHTML = buildInvoiceHtml(quote);
   document.getElementById('modalPreview').classList.remove('hidden');
+}
+
+function downloadSavedQuotePdf(id) {
+  const quote = state.quotes.find(q => q.id === id);
+  if (!quote) return;
+  downloadQuotePdf(quote);
+}
+
+function shareSavedQuoteViaWhatsApp(id) {
+  const quote = state.quotes.find(q => q.id === id);
+  if (!quote) return;
+  shareViaWhatsApp(quote);
 }
 
 // ============================================================================

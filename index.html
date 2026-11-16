@@ -28,7 +28,9 @@
   </script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="styles.css?v=2.2">
+  <!-- html2pdf.js para descarga directa de PDF en celular y PC -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <link rel="stylesheet" href="styles.css?v=2.3">
 </head>
 <body class="bg-slate-100/70 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
 
@@ -104,18 +106,22 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-3 sm:flex items-center gap-1.5 sm:space-x-2">
-          <button type="button" onclick="resetQuoteForm()" class="px-2 sm:px-3 py-2 text-xs sm:text-sm text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition border border-slate-200 sm:border-0 font-medium">
-            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:mr-1.5"></i>
-            <span class="hidden xs:inline">Nueva</span>
+        <div class="grid grid-cols-4 sm:flex items-center gap-1 sm:space-x-2">
+          <button type="button" onclick="resetQuoteForm()" class="px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition border border-slate-200 sm:border-0 font-medium" title="Nueva Cotización">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:mr-1"></i>
+            <span class="hidden sm:inline">Nueva</span>
           </button>
-          <button type="button" onclick="openPreviewModal()" class="px-2 sm:px-4 py-2 text-xs sm:text-sm bg-slate-900 hover:bg-black text-white rounded-lg flex items-center justify-center shadow-sm transition font-medium">
-            <i data-lucide="eye" class="w-3.5 h-3.5 sm:mr-1.5"></i>
+          <button type="button" onclick="openPreviewModal()" class="px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs bg-slate-900 hover:bg-black text-white rounded-lg flex items-center justify-center shadow-sm transition font-medium" title="Vista previa de cotización">
+            <i data-lucide="eye" class="w-3.5 h-3.5 sm:mr-1"></i>
             <span>Previa</span>
           </button>
-          <button type="button" onclick="printQuote()" class="px-2 sm:px-4 py-2 text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center shadow-sm shadow-blue-500/20 transition font-bold">
-            <i data-lucide="printer" class="w-3.5 h-3.5 sm:mr-1.5"></i>
+          <button type="button" onclick="downloadQuotePdf()" class="px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center shadow-sm shadow-blue-500/20 transition font-bold" title="Descargar archivo PDF">
+            <i data-lucide="download" class="w-3.5 h-3.5 sm:mr-1"></i>
             <span>PDF</span>
+          </button>
+          <button type="button" onclick="shareViaWhatsApp()" class="px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg flex items-center justify-center shadow-sm shadow-emerald-500/20 transition font-bold" title="Enviar cotización por WhatsApp">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5 sm:mr-1"></i>
+            <span class="hidden xs:inline">WhatsApp</span>
           </button>
         </div>
       </div>
@@ -736,18 +742,26 @@
   <div id="modalPreview" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-2 sm:p-4 hidden print:p-0 print:bg-white print:static">
     <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[95vh] flex flex-col overflow-hidden print:border-none print:shadow-none print:max-w-none print:max-h-none print:rounded-none">
       
-      <!-- Barra superior no imprimible -->
-      <div class="p-3 bg-slate-800 text-white flex items-center justify-between print:hidden">
-        <div class="flex items-center space-x-2 text-sm font-semibold">
+      <!-- Barra superior no imprimible (Con botones de descarga y WhatsApp) -->
+      <div class="p-3 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-2 print:hidden border-b border-slate-800">
+        <div class="flex items-center space-x-2 text-xs sm:text-sm font-bold">
           <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
-          <span>Vista Previa de Cotización para Impresión / PDF</span>
+          <span>Cotización Persianas Beltran HMO</span>
         </div>
-        <div class="flex items-center space-x-2">
-          <button type="button" onclick="window.print()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center shadow transition">
-            <i data-lucide="printer" class="w-3.5 h-3.5 mr-1.5"></i>
-            Imprimir / Guardar como PDF
+        <div class="flex items-center space-x-1 sm:space-x-2">
+          <button type="button" id="btnDownloadPdfModal" onclick="downloadQuotePdf()" class="px-2.5 sm:px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center shadow transition" title="Descargar PDF directo a tu celular">
+            <i data-lucide="download" class="w-3.5 h-3.5 mr-1"></i>
+            Descargar PDF
           </button>
-          <button type="button" onclick="closePreviewModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg">
+          <button type="button" onclick="shareViaWhatsApp()" class="px-2.5 sm:px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg flex items-center shadow transition" title="Enviar cotización por WhatsApp">
+            <i data-lucide="message-circle" class="w-3.5 h-3.5 mr-1"></i>
+            WhatsApp
+          </button>
+          <button type="button" onclick="window.print()" class="px-2 sm:px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg hidden sm:flex items-center transition" title="Imprimir en impresora">
+            <i data-lucide="printer" class="w-3.5 h-3.5 mr-1"></i>
+            Imprimir
+          </button>
+          <button type="button" onclick="closePreviewModal()" class="p-1.5 text-slate-400 hover:text-white rounded-lg ml-1">
             <i data-lucide="x" class="w-5 h-5"></i>
           </button>
         </div>
@@ -766,6 +780,6 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=2.3"></script>
 </body>
 </html>
