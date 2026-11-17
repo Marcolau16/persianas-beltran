@@ -625,16 +625,16 @@ function buildInvoiceHtml(quoteData) {
     const values = getQuoteItemValues(item);
     return `
       <tr class="border-b border-slate-300">
-        <td class="px-1 py-1 text-center">${index + 1}</td>
-        <td class="px-1 py-1">${escapeHtml(values.concept)}</td>
-        <td class="px-1 py-1 text-center">${escapeHtml(values.width)}</td>
-        <td class="px-1 py-1 text-center">${escapeHtml(values.height)}</td>
-        <td class="px-1 py-1 text-center">${values.quantity}</td>
-        <td class="px-1 py-1 text-right">${formatCurrency(values.listPrice)}</td>
-        <td class="px-1 py-1 text-center">${values.discountPercent}</td>
-        <td class="px-1 py-1 text-right">${formatCurrency(values.unitPrice)}</td>
-        <td class="px-1 py-1 text-right font-semibold">${formatCurrency(values.subtotal)}</td>
-        <td class="px-1 py-1">${escapeHtml(values.comments)}</td>
+        <td class="px-1 py-1 text-center" data-label="Partida">${index + 1}</td>
+        <td class="px-1 py-1" data-label="Concepto">${escapeHtml(values.concept)}</td>
+        <td class="px-1 py-1 text-center" data-label="Ancho (m)">${escapeHtml(values.width)}</td>
+        <td class="px-1 py-1 text-center" data-label="Alto (m)">${escapeHtml(values.height)}</td>
+        <td class="px-1 py-1 text-center" data-label="Unidades">${values.quantity}</td>
+        <td class="px-1 py-1 text-right" data-label="Precio de lista">${formatCurrency(values.listPrice)}</td>
+        <td class="px-1 py-1 text-center" data-label="Descuento">${values.discountPercent}%</td>
+        <td class="px-1 py-1 text-right" data-label="Precio final">${formatCurrency(values.unitPrice)}</td>
+        <td class="px-1 py-1 text-right font-semibold" data-label="Importe">${formatCurrency(values.subtotal)}</td>
+        <td class="px-1 py-1" data-label="Comentarios">${escapeHtml(values.comments)}</td>
       </tr>
     `;
   }).join('');
@@ -644,37 +644,37 @@ function buildInvoiceHtml(quoteData) {
   const balanceAmount = totals.balanceAmount === undefined ? totals.total - depositAmount : totals.balanceAmount;
 
   return `
-    <div class="max-w-5xl mx-auto bg-white p-3 sm:p-5 text-slate-800 text-[9px]">
-      <div class="grid grid-cols-12 gap-2 items-stretch mb-3">
-        <div class="col-span-9">
+    <div class="invoice-page max-w-5xl mx-auto bg-white p-3 sm:p-5 text-slate-800 text-[9px]">
+      <div class="invoice-header-grid grid grid-cols-1 sm:grid-cols-12 gap-2 items-stretch mb-3">
+        <div class="sm:col-span-9">
           <h1 class="text-center text-base font-semibold tracking-widest text-slate-500 mb-1">COTIZACIÓN</h1>
           <div class="border border-slate-500">
-            <div class="grid grid-cols-9">
-              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cliente</div>
-              <div class="col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.name || '')}</div>
-              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Teléfono</div>
-              <div class="col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.phone || '')}</div>
-              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cotización</div>
-              <div class="col-span-1 px-1 py-2 text-center">${escapeHtml(quoteData.folio || '')}</div>
+            <div class="invoice-info-grid grid grid-cols-2 sm:grid-cols-9">
+              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cliente</div>
+              <div class="invoice-value col-span-1 sm:col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.name || '')}</div>
+              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Teléfono</div>
+              <div class="invoice-value col-span-1 sm:col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.phone || '')}</div>
+              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cotización</div>
+              <div class="invoice-value col-span-1 sm:col-span-1 px-1 py-2 text-center">${escapeHtml(quoteData.folio || '')}</div>
             </div>
-            <div class="grid grid-cols-9 border-t border-slate-400">
-              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Dirección</div>
-              <div class="col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.address || '')}</div>
-              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Vendedor</div>
-              <div class="col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(seller)}</div>
-              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Fecha</div>
-              <div class="col-span-1 px-1 py-2 text-center">${escapeHtml(formatQuoteDate(quoteData.date))}</div>
+            <div class="invoice-info-grid grid grid-cols-2 sm:grid-cols-9 border-t border-slate-400">
+              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Dirección</div>
+              <div class="invoice-value col-span-1 sm:col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.address || '')}</div>
+              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Vendedor</div>
+              <div class="invoice-value col-span-1 sm:col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(seller)}</div>
+              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Fecha</div>
+              <div class="invoice-value col-span-1 sm:col-span-1 px-1 py-2 text-center">${escapeHtml(formatQuoteDate(quoteData.date))}</div>
             </div>
           </div>
         </div>
-        <div class="col-span-3 flex items-center justify-center border border-slate-300 p-2">
+        <div class="sm:col-span-3 flex items-center justify-center border border-slate-300 p-2">
           <img src="logo-beltran.svg" alt="Persianas Beltrán HMO" class="w-full max-h-20 object-contain">
         </div>
       </div>
 
       <p class="text-center leading-relaxed mb-3">Presentamos esta cotización con el detalle de los productos y servicios solicitados.</p>
 
-      <table class="w-full table-fixed border-collapse border border-slate-500 text-[8px] mb-3">
+      <table class="invoice-items-table w-full table-fixed border-collapse border border-slate-500 text-[8px] mb-3">
         <colgroup>
           <col style="width:4%"><col style="width:17%"><col style="width:8%"><col style="width:8%">
           <col style="width:8%"><col style="width:11%"><col style="width:7%"><col style="width:11%">
@@ -684,8 +684,8 @@ function buildInvoiceHtml(quoteData) {
           <tr class="bg-slate-500 text-white font-semibold">
             <th class="px-1 py-2">#</th>
             <th class="px-1 py-2 text-left">Concepto</th>
-            <th class="px-1 py-2">Ancho</th>
-            <th class="px-1 py-2">Alto</th>
+            <th class="px-1 py-2">Ancho (m)</th>
+            <th class="px-1 py-2">Alto (m)</th>
             <th class="px-1 py-2">Unidades</th>
             <th class="px-1 py-2 text-right">Lista</th>
             <th class="px-1 py-2">Desc. (%)</th>
@@ -697,8 +697,8 @@ function buildInvoiceHtml(quoteData) {
         <tbody>${itemsRows}</tbody>
       </table>
 
-      <div class="grid grid-cols-12 gap-3 items-start mb-3">
-        <div class="col-span-6">
+      <div class="invoice-totals-grid grid grid-cols-12 gap-3 items-start mb-3">
+        <div class="col-span-12 sm:col-span-6">
           <table class="w-full border-collapse border border-slate-500 text-[9px]">
             <tbody>
               <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Anticipo</td><td class="px-2 py-1 text-right">${formatCurrency(depositAmount)}</td></tr>
@@ -706,7 +706,7 @@ function buildInvoiceHtml(quoteData) {
             </tbody>
           </table>
         </div>
-        <div class="col-span-6">
+        <div class="col-span-12 sm:col-span-6">
           <table class="w-full border-collapse border border-slate-500 text-[9px]">
             <tbody>
               <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Subtotal</td><td class="px-2 py-1 text-right">${formatCurrency(totals.subtotal)}</td></tr>
@@ -716,7 +716,7 @@ function buildInvoiceHtml(quoteData) {
         </div>
       </div>
 
-      <div class="border border-slate-500 px-2 py-2 mb-3 min-h-12">
+      <div class="invoice-comments border border-slate-500 px-2 py-2 mb-3 min-h-12">
         <p class="text-center font-semibold uppercase">Comentarios adicionales:</p>
         <p class="whitespace-pre-line mt-1">${escapeHtml(quoteData.comments || '')}</p>
       </div>
@@ -833,7 +833,7 @@ function shareViaWhatsApp(customQuoteData = null) {
   quote.items.forEach((item, i) => {
     const values = getQuoteItemValues(item);
     text += `\n*${i + 1}. ${values.concept}*\n`;
-    text += `   📐 Medidas: ${values.width} × ${values.height}\n`;
+    text += `   📐 Medidas (m): ${values.width} × ${values.height}\n`;
     text += `   📊 Unidades: ${values.quantity}\n`;
     text += `   💰 Lista: ${formatCurrency(values.listPrice)} | Descuento: ${values.discountPercent}%\n`;
     text += `   💵 Precio: ${formatCurrency(values.unitPrice)} | Importe: ${formatCurrency(values.subtotal)}\n`;

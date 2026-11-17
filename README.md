@@ -15,7 +15,7 @@ Sistema local de presupuestos para **Persianas Beltran HMO**. Los datos se captu
 
 ### 1. Captura manual de la cotización
 - El folio se genera automáticamente; fecha, vendedor y datos del cliente se escriben en el formulario.
-- Cada partida se captura con concepto, ancho, alto, cantidad, precio, descuento y comentarios. No se seleccionan productos de un catálogo ni unidades m²/pza.
+- Cada partida se captura con concepto, ancho y alto en metros, cantidad, precio, descuento y comentarios. No se seleccionan productos de un catálogo ni unidades m²/pza.
 - El precio con descuento y el importe de cada partida se calculan automáticamente.
 - Puedes agregar comentarios adicionales y escribir el monto del anticipo; el sistema calcula la liquidación.
 

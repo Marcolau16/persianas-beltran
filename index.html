@@ -30,7 +30,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <!-- html2pdf.js para descarga directa de PDF en celular y PC -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <link rel="stylesheet" href="styles.css?v=2.4">
+  <link rel="stylesheet" href="styles.css?v=2.5">
 </head>
 <body class="bg-slate-100/70 text-slate-900 min-h-screen flex flex-col font-sans antialiased">
 
@@ -86,10 +86,10 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-4 sm:flex items-center gap-1 sm:space-x-2">
+        <div class="grid grid-cols-2 sm:flex items-center gap-1 sm:space-x-2">
           <button type="button" onclick="resetQuoteForm()" class="px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-lg flex items-center justify-center transition border border-slate-200 sm:border-0 font-medium" title="Nueva Cotización">
             <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 sm:mr-1"></i>
-            <span class="hidden sm:inline">Nueva</span>
+            <span>Nueva</span>
           </button>
           <button type="button" onclick="openPreviewModal()" class="px-1.5 sm:px-3 py-2 text-[11px] sm:text-xs bg-slate-900 hover:bg-black text-white rounded-lg flex items-center justify-center shadow-sm transition font-medium" title="Vista previa de cotización">
             <i data-lucide="eye" class="w-3.5 h-3.5 sm:mr-1"></i>
@@ -179,12 +179,12 @@
             <input type="text" id="itemConcept" class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Producto o servicio">
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Ancho</label>
-            <input type="text" id="itemWidth" class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Ej. 129 cm">
+            <label class="block text-xs font-medium text-slate-700 mb-1">Ancho (m)</label>
+            <input type="text" id="itemWidth" class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Ej. 1.29">
           </div>
           <div>
-            <label class="block text-xs font-medium text-slate-700 mb-1">Alto</label>
-            <input type="text" id="itemHeight" class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Ej. 112 cm">
+            <label class="block text-xs font-medium text-slate-700 mb-1">Alto (m)</label>
+            <input type="text" id="itemHeight" class="w-full text-sm p-2.5 bg-slate-50 border border-slate-300 rounded-lg" placeholder="Ej. 1.12">
           </div>
           <div>
             <label class="block text-xs font-medium text-slate-700 mb-1">¿Cuántas unidades?</label>
@@ -230,13 +230,14 @@
         </div>
 
         <div class="overflow-x-auto">
+          <p class="px-3 py-2 text-[10px] text-slate-500 sm:hidden">Desliza la tabla para ver todas las columnas.</p>
           <table class="w-full min-w-[1050px] text-left border-collapse text-xs">
             <thead>
               <tr class="bg-slate-100/75 text-slate-600 uppercase font-bold tracking-wider border-b border-slate-200">
                 <th class="py-3 px-3 w-10 text-center">#</th>
                 <th class="py-3 px-3">Concepto</th>
-                <th class="py-3 px-3 text-center">Ancho</th>
-                <th class="py-3 px-3 text-center">Alto</th>
+                <th class="py-3 px-3 text-center">Ancho (m)</th>
+                <th class="py-3 px-3 text-center">Alto (m)</th>
                 <th class="py-3 px-3 text-center">Unidades</th>
                 <th class="py-3 px-3 text-right">Precio</th>
                 <th class="py-3 px-3 text-right">Desc. (%)</th>
@@ -320,29 +321,32 @@
           </h2>
           <p class="text-xs text-slate-500">Consulta, imprime, duplica o actualiza el estado de cotizaciones anteriores</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <input type="text" id="searchHistoryInput" oninput="renderHistoryTable()" placeholder="Buscar por cliente o folio..." class="text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg w-56 focus:outline-blue-500">
+        <div class="flex w-full items-center sm:w-auto">
+          <input type="text" id="searchHistoryInput" oninput="renderHistoryTable()" placeholder="Buscar por cliente o folio..." class="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg sm:w-56 focus:outline-blue-500">
         </div>
       </div>
 
       <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr class="bg-slate-100/75 text-slate-600 uppercase font-bold tracking-wider border-b border-slate-200">
-              <th class="py-3 px-4">Folio</th>
-              <th class="py-3 px-4">Fecha</th>
-              <th class="py-3 px-4">Cliente (Quien pidió)</th>
-              <th class="py-3 px-4">Vendedor</th>
-              <th class="py-3 px-4 text-center">Partidas</th>
-              <th class="py-3 px-4 text-right">Total</th>
-              <th class="py-3 px-4 text-center">Estado</th>
-              <th class="py-3 px-4 text-center w-32">Acciones</th>
-            </tr>
-          </thead>
-          <tbody id="historyTableBody" class="divide-y divide-slate-100">
-            <!-- Renderizado dinámico -->
-          </tbody>
-        </table>
+        <p class="px-3 py-2 text-[10px] text-slate-500 sm:hidden">Desliza la tabla para ver todas las columnas.</p>
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[760px] text-left border-collapse text-xs">
+            <thead>
+              <tr class="bg-slate-100/75 text-slate-600 uppercase font-bold tracking-wider border-b border-slate-200">
+                <th class="py-3 px-4">Folio</th>
+                <th class="py-3 px-4">Fecha</th>
+                <th class="py-3 px-4">Cliente (Quien pidió)</th>
+                <th class="py-3 px-4">Vendedor</th>
+                <th class="py-3 px-4 text-center">Partidas</th>
+                <th class="py-3 px-4 text-right">Total</th>
+                <th class="py-3 px-4 text-center">Estado</th>
+                <th class="py-3 px-4 text-center w-32">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-100">
+              <!-- Renderizado dinámico -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
@@ -429,7 +433,7 @@
           <i data-lucide="file-check" class="w-4 h-4 text-emerald-400"></i>
           <span>Cotización Persianas Beltran HMO</span>
         </div>
-        <div class="flex items-center space-x-1 sm:space-x-2">
+        <div class="flex w-full items-center justify-between gap-1 sm:w-auto sm:justify-end sm:space-x-2">
           <button type="button" id="btnDownloadPdfModal" onclick="downloadQuotePdf()" class="px-2.5 sm:px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg flex items-center shadow transition" title="Descargar PDF directo a tu celular">
             <i data-lucide="download" class="w-3.5 h-3.5 mr-1"></i>
             Descargar PDF
@@ -449,7 +453,7 @@
       </div>
 
       <!-- Hoja Membretada (Imprimible) -->
-      <div class="overflow-y-auto p-6 sm:p-10 flex-1 bg-white print:p-0 print:overflow-visible" id="printableInvoice">
+      <div class="overflow-y-auto p-3 sm:p-10 flex-1 bg-white print:p-0 print:overflow-visible" id="printableInvoice">
         <!-- Renderizado dinámico en app.js -->
       </div>
     </div>
@@ -461,6 +465,6 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="app.js?v=2.3"></script>
+  <script src="app.js?v=2.4"></script>
 </body>
 </html>
