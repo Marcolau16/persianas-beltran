@@ -668,7 +668,7 @@ function buildInvoiceHtml(quoteData) {
           </div>
         </div>
         <div class="col-span-3 flex items-center justify-center border border-slate-300 p-2">
-          <img src="assets/logo-beltran.svg" alt="Persianas Beltrán HMO" class="w-full max-h-20 object-contain">
+          <img src="logo-beltran.svg" alt="Persianas Beltrán HMO" class="w-full max-h-20 object-contain">
         </div>
       </div>
 
