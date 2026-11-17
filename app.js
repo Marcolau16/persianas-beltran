@@ -1,5 +1,5 @@
 /**
- * app.js - Sistema de Cotizaciones Profesionales con Cálculo por Metros
+ * app.js - Sistema de cotizaciones con captura manual
  */
 
 // ============================================================================
@@ -82,8 +82,7 @@ const DEFAULT_COMPANY = {
   phone: '(662) 123 4567',
   email: 'contacto@persianasbeltranhmo.com',
   website: 'www.persianasbeltranhmo.com',
-  address: 'Hermosillo, Sonora, México',
-  defaultTerms: '1. Medidas sujetas a rectificación en sitio antes de confección.\n2. Tiempo de entrega e instalación: 5 a 7 días hábiles a partir del anticipo.\n3. Forma de pago: 50% de anticipo y 50% al finalizar la instalación.\n4. Incluye instalación profesional y 1 año de garantía en mecanismos y telas.'
+  address: 'Hermosillo, Sonora, México'
 };
 
 // Estado global en memoria
@@ -101,11 +100,7 @@ let state = {
 
 document.addEventListener('DOMContentLoaded', () => {
   loadStorageData();
-  setupInitialDates();
-  renderResponsiblesDropdown();
-  renderProductsDropdown();
-  renderProductsTable();
-  renderResponsiblesGrid();
+  document.getElementById('quoteFolio').value = getNextQuoteFolio();
   renderHistoryTable();
   loadCompanyConfigForm();
   updateBadges();
@@ -149,8 +144,6 @@ function loadStorageData() {
     state.company = JSON.parse(savedComp);
   }
 
-  // Actualizar nombre de empresa en header
-  document.getElementById('headerCompanyName').textContent = state.company.name || 'Persianas Beltran HMO';
 }
 
 function saveStorage() {
@@ -161,30 +154,16 @@ function saveStorage() {
   updateBadges();
 }
 
-function setupInitialDates() {
-  const today = new Date().toISOString().split('T')[0];
-  const dateInput = document.getElementById('quoteDate');
-  if (dateInput && !dateInput.value) {
-    dateInput.value = today;
-  }
-
-  // Generar folio sugerido si no existe
-  if (document.getElementById('quoteFolio').value === 'COT-1001' && state.quotes.length > 0) {
-    const nextNumber = 1000 + state.quotes.length + 1;
-    document.getElementById('quoteFolio').value = `COT-${nextNumber}`;
-  }
-
-  // Cargar condiciones por defecto
-  const notesField = document.getElementById('quoteNotes');
-  if (notesField && !notesField.value) {
-    notesField.value = state.company.defaultTerms || '';
-  }
+function updateBadges() {
+  document.getElementById('badge-history-count').textContent = state.quotes.length;
 }
 
-function updateBadges() {
-  document.getElementById('badge-products-count').textContent = state.products.length;
-  document.getElementById('badge-responsibles-count').textContent = state.responsibles.length;
-  document.getElementById('badge-history-count').textContent = state.quotes.length;
+function getNextQuoteFolio() {
+  const highestNumber = state.quotes.reduce((max, quote) => {
+    const match = /^COT-(\d+)$/i.exec(quote.folio || '');
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 1000);
+  return `COT-${highestNumber + 1}`;
 }
 
 // ============================================================================
@@ -213,41 +192,6 @@ function switchTab(tabId) {
 // ============================================================================
 // GESTIÓN DE RESPONSABLES DE COTIZACIÓN
 // ============================================================================
-
-function renderResponsiblesDropdown(selectedId = null) {
-  const select = document.getElementById('quoteResponsibleSelect');
-  select.innerHTML = '<option value="">-- Selecciona un responsable --</option>';
-
-  state.responsibles.forEach(resp => {
-    const opt = document.createElement('option');
-    opt.value = resp.id;
-    opt.textContent = resp.name;
-    if (selectedId && resp.id === selectedId) {
-      opt.selected = true;
-    }
-    select.appendChild(opt);
-  });
-
-  onResponsibleSelected();
-}
-
-function onResponsibleSelected() {
-  const select = document.getElementById('quoteResponsibleSelect');
-  const card = document.getElementById('selectedResponsibleCard');
-  const respId = select.value;
-
-  if (!respId) {
-    card.classList.add('hidden');
-    return;
-  }
-
-  const resp = state.responsibles.find(r => r.id === respId);
-  if (resp) {
-    document.getElementById('respCardName').textContent = resp.name;
-    card.classList.remove('hidden');
-    if (window.lucide) window.lucide.createIcons();
-  }
-}
 
 function openAddResponsibleModal(respId = null) {
   const modal = document.getElementById('modalResponsible');
@@ -299,7 +243,6 @@ function saveResponsible(event) {
 
   saveStorage();
   closeResponsibleModal();
-  renderResponsiblesDropdown(id);
   renderResponsiblesGrid();
 }
 
@@ -311,7 +254,6 @@ function deleteResponsible(id) {
   if (confirm('¿Estás seguro de eliminar este responsable?')) {
     state.responsibles = state.responsibles.filter(r => r.id !== id);
     saveStorage();
-    renderResponsiblesDropdown();
     renderResponsiblesGrid();
   }
 }
@@ -335,9 +277,6 @@ function renderResponsiblesGrid() {
       </div>
 
       <div class="flex items-center space-x-1.5">
-        <button type="button" onclick="selectResponsibleForQuote('${resp.id}')" class="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:bg-blue-50 rounded-lg flex items-center transition" title="Usar en cotización">
-          <i data-lucide="check" class="w-3.5 h-3.5 mr-1"></i> Usar
-        </button>
         <button type="button" onclick="openAddResponsibleModal('${resp.id}')" class="p-1.5 text-slate-400 hover:text-slate-600 rounded" title="Editar">
           <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
         </button>
@@ -352,310 +291,59 @@ function renderResponsiblesGrid() {
   if (window.lucide) window.lucide.createIcons();
 }
 
-function selectResponsibleForQuote(id) {
-  renderResponsiblesDropdown(id);
-  switchTab('tab-cotizador');
-}
-
 // ============================================================================
-// GESTIÓN DE CATÁLOGO DE PRODUCTOS Y MEDIDAS
+// CAPTURA MANUAL DE PARTIDAS
 // ============================================================================
 
-function renderProductsDropdown() {
-  const select = document.getElementById('itemProductSelect');
-  select.innerHTML = `
-    <option value="">-- Seleccionar producto del catálogo --</option>
-    <option value="custom">✍️ Producto personalizado / manual</option>
-  `;
-
-  state.products.forEach(prod => {
-    const opt = document.createElement('option');
-    opt.value = prod.id;
-    const unitLabel = prod.unitType === 'm2' ? 'm²' : (prod.unitType === 'lineal' ? 'm lineal' : 'pza');
-    opt.textContent = `${prod.name} - $${prod.basePrice.toFixed(2)} / ${unitLabel}`;
-    select.appendChild(opt);
-  });
-}
-
-function onItemProductChange() {
-  const select = document.getElementById('itemProductSelect');
-  const customFields = document.getElementById('customProductFields');
-  const priceInput = document.getElementById('itemPrice');
-  const badge = document.getElementById('productUnitBadge');
-
-  if (select.value === 'custom') {
-    customFields.classList.remove('hidden');
-    priceInput.value = '';
-    updateDimensionInputs();
-    return;
-  }
-
-  customFields.classList.add('hidden');
-
-  const prod = state.products.find(p => p.id === select.value);
-  if (prod) {
-    priceInput.value = prod.basePrice;
-    if (prod.unitType === 'm2') {
-      badge.innerHTML = '<span>Metro Cuadrado (m²)</span>';
-    } else if (prod.unitType === 'lineal') {
-      badge.innerHTML = '<span>Metro Lineal (m)</span>';
-    } else {
-      badge.innerHTML = '<span>Por Pieza</span>';
-    }
-  } else {
-    priceInput.value = '';
-  }
-
-  updateDimensionInputs();
-  calculateItemTotal();
-}
-
-function updateDimensionInputs() {
-  const select = document.getElementById('itemProductSelect');
-  let unitType = 'm2';
-
-  if (select.value === 'custom') {
-    unitType = document.getElementById('customProductType').value;
-  } else {
-    const prod = state.products.find(p => p.id === select.value);
-    if (prod) {
-      unitType = prod.unitType;
-    }
-  }
-
-  const m2Box = document.getElementById('m2InputsContainer');
-  const linealBox = document.getElementById('linealInputsContainer');
-  const piezaBox = document.getElementById('piezaInputsContainer');
-
-  m2Box.classList.add('hidden');
-  linealBox.classList.add('hidden');
-  piezaBox.classList.add('hidden');
-
-  if (unitType === 'm2') {
-    m2Box.classList.remove('hidden');
-  } else if (unitType === 'lineal') {
-    linealBox.classList.remove('hidden');
-  } else {
-    piezaBox.classList.remove('hidden');
-  }
-
-  calculateItemTotal();
-}
-
-/**
- * Cálculo dinámico del total de la partida según las medidas ingresadas
- */
 function calculateItemTotal() {
-  const select = document.getElementById('itemProductSelect');
-  const isCm = document.getElementById('inputUnit').value === 'cm';
-  const unitDivider = isCm ? 100 : 1;
-  const unitSuffix = isCm ? 'cm' : 'M';
+  const quantity = parseFloat(document.getElementById('itemQuantity').value) || 0;
+  const listPrice = parseFloat(document.getElementById('itemListPrice').value) || 0;
+  const discountPercent = parseFloat(document.getElementById('itemDiscountPercent').value) || 0;
+  const unitPrice = listPrice * (1 - discountPercent / 100);
+  const subtotal = quantity * unitPrice;
 
-  // Actualizar labels según si es cm o M
-  const widthLabel = document.getElementById('labelWidth');
-  const lengthLabel = document.getElementById('labelLength');
-  const linealLabel = document.getElementById('labelLinealLength');
-
-  if (widthLabel) widthLabel.textContent = `Ancho (${unitSuffix}):`;
-  if (lengthLabel) lengthLabel.textContent = `Largo (${unitSuffix}):`;
-  if (linealLabel) linealLabel.textContent = `Largo (${unitSuffix}):`;
-
-  let unitType = 'm2';
-  let price = parseFloat(document.getElementById('itemPrice').value) || 0;
-
-  if (select.value === 'custom') {
-    unitType = document.getElementById('customProductType').value;
-    const customPrice = parseFloat(document.getElementById('customProductPrice').value);
-    if (!isNaN(customPrice)) {
-      price = customPrice;
-      document.getElementById('itemPrice').value = price;
-    }
-  } else {
-    const prod = state.products.find(p => p.id === select.value);
-    if (prod) {
-      unitType = prod.unitType;
-    }
-  }
-
-  let totalMeasured = 0;
-  let breakdownText = '';
-  let unitLabel = '';
-
-  if (unitType === 'm2') {
-    const rawWidth = parseFloat(document.getElementById('dimWidth').value) || 0;
-    const rawLength = parseFloat(document.getElementById('dimLength').value) || 0;
-    const qty = parseInt(document.getElementById('dimQuantity').value) || 1;
-
-    const widthM = rawWidth / unitDivider;
-    const lengthM = rawLength / unitDivider;
-    const areaPerPiece = widthM * lengthM;
-    totalMeasured = areaPerPiece * qty;
-    unitLabel = 'm²';
-
-    if (rawWidth > 0 && rawLength > 0) {
-      const widthStr = Number.isInteger(widthM) ? widthM.toString() : widthM.toFixed(2);
-      const lengthStr = Number.isInteger(lengthM) ? lengthM.toString() : lengthM.toFixed(2);
-      if (qty > 1) {
-        breakdownText = `${qty} pzas de ${widthStr} M de ancho × ${lengthStr} M de largo (${totalMeasured.toFixed(2)} m²)`;
-      } else {
-        breakdownText = `${widthStr} M de ancho × ${lengthStr} M de largo (${totalMeasured.toFixed(2)} m²)`;
-      }
-    } else {
-      breakdownText = '0 M de ancho × 0 M de largo (0.00 m²)';
-    }
-  } else if (unitType === 'lineal') {
-    const rawLength = parseFloat(document.getElementById('dimLinealLength').value) || 0;
-    const qty = parseInt(document.getElementById('dimLinealQuantity').value) || 1;
-
-    const lengthM = rawLength / unitDivider;
-    totalMeasured = lengthM * qty;
-    unitLabel = 'm lineales';
-
-    if (rawLength > 0) {
-      const lengthStr = Number.isInteger(lengthM) ? lengthM.toString() : lengthM.toFixed(2);
-      if (qty > 1) {
-        breakdownText = `${qty} tramos de ${lengthStr} M de largo (${totalMeasured.toFixed(2)} m lineales)`;
-      } else {
-        breakdownText = `${lengthStr} M de largo (${totalMeasured.toFixed(2)} m lineales)`;
-      }
-    } else {
-      breakdownText = '0 M de largo (0.00 m lineales)';
-    }
-  } else {
-    const qty = parseInt(document.getElementById('dimPiezaQuantity').value) || 1;
-    totalMeasured = qty;
-    unitLabel = 'piezas';
-    breakdownText = `${qty} pieza(s)`;
-  }
-
-  const subtotal = totalMeasured * price;
-
-  document.getElementById('liveMeasuredTotal').textContent = breakdownText;
+  document.getElementById('liveUnitPrice').textContent = formatCurrency(unitPrice);
   document.getElementById('livePartidaSubtotal').textContent = formatCurrency(subtotal);
 
-  return {
-    unitType,
-    price,
-    totalMeasured,
-    unitLabel,
-    subtotal
-  };
+  return { quantity, listPrice, discountPercent, unitPrice, subtotal };
 }
 
-/**
- * Agregar la partida a la cotización activa
- */
 function addItemToQuote() {
-  const select = document.getElementById('itemProductSelect');
-  if (!select.value) {
-    alert('Por favor selecciona un producto o elige personalizado.');
+  const concept = document.getElementById('itemConcept').value.trim();
+  const { quantity, listPrice, discountPercent, unitPrice, subtotal } = calculateItemTotal();
+
+  if (!concept) {
+    alert('Escribe el concepto de la partida.');
+    document.getElementById('itemConcept').focus();
+    return;
+  }
+  if (quantity <= 0 || listPrice < 0 || discountPercent < 0 || discountPercent > 100) {
+    alert('Revisa la cantidad, el precio de lista y el descuento de la partida.');
     return;
   }
 
-  const isCm = document.getElementById('inputUnit').value === 'cm';
-  const unitDivider = isCm ? 100 : 1;
-
-  let productName = '';
-  let unitType = 'm2';
-  let price = parseFloat(document.getElementById('itemPrice').value) || 0;
-
-  if (select.value === 'custom') {
-    productName = document.getElementById('customProductName').value.trim() || 'Producto Personalizado';
-    unitType = document.getElementById('customProductType').value;
-  } else {
-    const prod = state.products.find(p => p.id === select.value);
-    if (!prod) return;
-    productName = prod.name;
-    unitType = prod.unitType;
-  }
-
-  if (price <= 0) {
-    alert('Ingresa un precio válido para el producto.');
-    return;
-  }
-
-  let dimensionDetails = '';
-  let totalMeasured = 0;
-  let pieces = 1;
-
-  if (unitType === 'm2') {
-    const rawWidth = parseFloat(document.getElementById('dimWidth').value);
-    const rawLength = parseFloat(document.getElementById('dimLength').value);
-    pieces = parseInt(document.getElementById('dimQuantity').value) || 1;
-
-    if (isNaN(rawWidth) || rawWidth <= 0 || isNaN(rawLength) || rawLength <= 0) {
-      alert('Debes ingresar el ancho y el largo (ejemplo: 2 M de ancho y 2 M de largo).');
-      return;
-    }
-
-    const widthM = rawWidth / unitDivider;
-    const lengthM = rawLength / unitDivider;
-    const areaPerPiece = widthM * lengthM;
-    totalMeasured = areaPerPiece * pieces;
-
-    const widthStr = Number.isInteger(widthM) ? widthM.toString() : widthM.toFixed(2);
-    const lengthStr = Number.isInteger(lengthM) ? lengthM.toString() : lengthM.toFixed(2);
-
-    if (pieces === 1) {
-      dimensionDetails = `${widthStr} M de ancho × ${lengthStr} M de largo (${areaPerPiece.toFixed(2)} m²)`;
-    } else {
-      dimensionDetails = `${pieces} pza(s) de ${widthStr} M de ancho × ${lengthStr} M de largo (${areaPerPiece.toFixed(2)} m²/pza)`;
-    }
-  } else if (unitType === 'lineal') {
-    const rawLength = parseFloat(document.getElementById('dimLinealLength').value);
-    pieces = parseInt(document.getElementById('dimLinealQuantity').value) || 1;
-
-    if (isNaN(rawLength) || rawLength <= 0) {
-      alert('Debes ingresar la longitud en metros (ejemplo: 2 M de largo).');
-      return;
-    }
-
-    const lengthM = rawLength / unitDivider;
-    totalMeasured = lengthM * pieces;
-
-    const lengthStr = Number.isInteger(lengthM) ? lengthM.toString() : lengthM.toFixed(2);
-
-    if (pieces === 1) {
-      dimensionDetails = `${lengthStr} M de largo`;
-    } else {
-      dimensionDetails = `${pieces} tramo(s) de ${lengthStr} M de largo`;
-    }
-  } else {
-    pieces = parseInt(document.getElementById('dimPiezaQuantity').value) || 1;
-    totalMeasured = pieces;
-    dimensionDetails = `${pieces} pieza(s) fijas`;
-  }
-
-  const notes = document.getElementById('itemNotes').value.trim();
-  const subtotal = totalMeasured * price;
-
-  const item = {
+  state.currentQuoteItems.push({
     id: `item-${Date.now()}`,
-    productName,
-    unitType,
-    pieces,
-    dimensionDetails,
-    totalMeasured,
-    unitLabel: unitType === 'm2' ? 'm²' : (unitType === 'lineal' ? 'm' : 'pza'),
-    price,
-    notes,
-    subtotal
-  };
+    concept,
+    width: document.getElementById('itemWidth').value.trim(),
+    height: document.getElementById('itemHeight').value.trim(),
+    quantity,
+    listPrice,
+    discountPercent,
+    unitPrice,
+    subtotal,
+    comments: document.getElementById('itemComments').value.trim()
+  });
 
-  state.currentQuoteItems.push(item);
+  ['itemConcept', 'itemWidth', 'itemHeight', 'itemQuantity', 'itemListPrice', 'itemDiscountPercent', 'itemComments'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  calculateItemTotal();
   renderQuoteItemsTable();
   calculateQuoteTotals();
-
-  // Limpiar campos de medida
-  document.getElementById('dimLength').value = '';
-  document.getElementById('dimWidth').value = '';
-  document.getElementById('dimLinealLength').value = '';
-  document.getElementById('itemNotes').value = '';
-  calculateItemTotal();
 }
-
-function removeQuoteItem(itemId) {
-  state.currentQuoteItems = state.currentQuoteItems.filter(i => i.id !== itemId);
+function removeQuoteItem(index) {
+  state.currentQuoteItems.splice(index, 1);
   renderQuoteItemsTable();
   calculateQuoteTotals();
 }
@@ -668,10 +356,10 @@ function renderQuoteItemsTable() {
   if (state.currentQuoteItems.length === 0) {
     tbody.innerHTML = `
       <tr id="emptyItemsRow">
-        <td colspan="7" class="py-8 text-center text-slate-400">
+        <td colspan="11" class="py-8 text-center text-slate-400">
           <i data-lucide="shopping-cart" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
-          <p class="font-medium">No has agregado ninguna partida a la cotización</p>
-          <p class="text-[11px] text-slate-400">Selecciona un producto arriba, ingresa las medidas y haz clic en "Agregar"</p>
+          <p class="font-medium">No has agregado ningún producto a la cotización</p>
+          <p class="text-[11px] text-slate-400">Escribe los datos y haz clic en "Agregar producto"</p>
         </td>
       </tr>
     `;
@@ -681,28 +369,22 @@ function renderQuoteItemsTable() {
 
   tbody.innerHTML = '';
   state.currentQuoteItems.forEach((item, index) => {
+    const values = getQuoteItemValues(item);
     const tr = document.createElement('tr');
     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
     tr.innerHTML = `
       <td class="py-3 px-3 text-center font-bold text-slate-500">${index + 1}</td>
-      <td class="py-3 px-3">
-        <p class="font-bold text-slate-800">${item.productName}</p>
-        ${item.notes ? `<p class="text-[11px] text-slate-500 italic mt-0.5">${item.notes}</p>` : ''}
-      </td>
-      <td class="py-3 px-3 text-center text-slate-600 bg-slate-50/50 rounded font-medium">
-        ${item.dimensionDetails}
-      </td>
-      <td class="py-3 px-3 text-center font-bold text-slate-700">
-        ${item.totalMeasured.toFixed(2)} ${item.unitLabel}
-      </td>
-      <td class="py-3 px-3 text-right text-slate-600 font-medium">
-        $${item.price.toFixed(2)} / ${item.unitLabel}
-      </td>
-      <td class="py-3 px-3 text-right font-black text-slate-900">
-        ${formatCurrency(item.subtotal)}
-      </td>
+      <td class="py-3 px-3 font-bold text-slate-800">${escapeHtml(values.concept)}</td>
+      <td class="py-3 px-3 text-center">${escapeHtml(values.width)}</td>
+      <td class="py-3 px-3 text-center">${escapeHtml(values.height)}</td>
+      <td class="py-3 px-3 text-center">${values.quantity}</td>
+      <td class="py-3 px-3 text-right">${formatCurrency(values.listPrice)}</td>
+      <td class="py-3 px-3 text-right">${values.discountPercent}%</td>
+      <td class="py-3 px-3 text-right">${formatCurrency(values.unitPrice)}</td>
+      <td class="py-3 px-3 text-right font-black text-slate-900">${formatCurrency(values.subtotal)}</td>
+      <td class="py-3 px-3">${escapeHtml(values.comments)}</td>
       <td class="py-3 px-2 text-center">
-        <button type="button" onclick="removeQuoteItem('${item.id}')" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Eliminar partida">
+        <button type="button" onclick="removeQuoteItem(${index})" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Eliminar partida">
           <i data-lucide="trash-2" class="w-4 h-4"></i>
         </button>
       </td>
@@ -714,45 +396,25 @@ function renderQuoteItemsTable() {
 }
 
 /**
- * Cálculo de Subtotal, Descuentos, IVA y Total
+ * Cálculo de Subtotal y Total
  */
 function calculateQuoteTotals() {
-  const subtotal = state.currentQuoteItems.reduce((acc, curr) => acc + curr.subtotal, 0);
-
-  const discountPercent = parseFloat(document.getElementById('discountPercent').value) || 0;
-  const discountAmount = subtotal * (discountPercent / 100);
-
-  const taxableBase = Math.max(0, subtotal - discountAmount);
-  const includeTax = document.getElementById('includeTax').checked;
-  const taxRate = includeTax ? (parseFloat(document.getElementById('taxPercent').value) || 0) : 0;
-  const taxAmount = taxableBase * (taxRate / 100);
-
-  const total = taxableBase + taxAmount;
+  const subtotal = state.currentQuoteItems.reduce((acc, item) => acc + getQuoteItemValues(item).subtotal, 0);
+  const total = subtotal;
+  const depositAmount = parseFloat(document.getElementById('depositAmount').value) || 0;
+  const balanceAmount = total - depositAmount;
 
   document.getElementById('summarySubtotal').textContent = formatCurrency(subtotal);
-  document.getElementById('summaryDiscount').textContent = `-${formatCurrency(discountAmount)}`;
-  document.getElementById('summaryTax').textContent = formatCurrency(taxAmount);
   document.getElementById('summaryTotal').textContent = formatCurrency(total);
   document.getElementById('totalInWords').textContent = numberToWordsSpanish(total);
+  document.getElementById('summaryBalance').textContent = formatCurrency(balanceAmount);
 
   return {
     subtotal,
-    discountPercent,
-    discountAmount,
-    includeTax,
-    taxRate,
-    taxAmount,
-    total
+    total,
+    depositAmount,
+    balanceAmount
   };
-}
-
-function insertNote(text) {
-  const textarea = document.getElementById('quoteNotes');
-  if (textarea.value.trim().length > 0) {
-    textarea.value += `\n• ${text}`;
-  } else {
-    textarea.value = `• ${text}`;
-  }
 }
 
 function resetQuoteForm() {
@@ -761,18 +423,20 @@ function resetQuoteForm() {
   }
   state.currentQuoteItems = [];
   renderQuoteItemsTable();
+  ['itemConcept', 'itemWidth', 'itemHeight', 'itemQuantity', 'itemListPrice', 'itemDiscountPercent', 'itemComments'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
 
   // Resetear campos de cliente
   document.getElementById('clientName').value = '';
   document.getElementById('clientPhone').value = '';
   document.getElementById('clientEmail').value = '';
   document.getElementById('clientAddress').value = '';
-  document.getElementById('discountPercent').value = '0';
-  document.getElementById('quoteNotes').value = state.company.defaultTerms || '';
-
-  // Actualizar siguiente folio
-  const nextNumber = 1000 + state.quotes.length + 1;
-  document.getElementById('quoteFolio').value = `COT-${nextNumber}`;
+  document.getElementById('quoteResponsible').value = '';
+  document.getElementById('quoteDate').value = '';
+  document.getElementById('quoteFolio').value = getNextQuoteFolio();
+  document.getElementById('quoteComments').value = '';
+  document.getElementById('depositAmount').value = '';
 
   calculateQuoteTotals();
 }
@@ -789,27 +453,25 @@ function saveQuoteToHistory() {
     return;
   }
 
-  const responsibleId = document.getElementById('quoteResponsibleSelect').value;
-  if (!responsibleId) {
-    alert('Por favor selecciona al responsable de la cotización desde el menú desplegable.');
-    document.getElementById('quoteResponsibleSelect').focus();
+  const depositAmount = Number(document.getElementById('depositAmount').value);
+  if (!Number.isFinite(depositAmount) || depositAmount < 0) {
+    alert('El anticipo debe ser un monto igual o mayor a $0.');
+    document.getElementById('depositAmount').focus();
     return;
   }
 
   if (state.currentQuoteItems.length === 0) {
-    alert('Debes agregar al menos una partida de producto antes de guardar la cotización.');
+    alert('Debes agregar al menos un producto antes de guardar la cotización.');
     return;
   }
 
-  const responsible = state.responsibles.find(r => r.id === responsibleId) || { name: 'No especificado' };
   const totals = calculateQuoteTotals();
 
   const quote = {
     id: `quote-${Date.now()}`,
-    folio: document.getElementById('quoteFolio').value.trim() || `COT-${Date.now()}`,
+    folio: document.getElementById('quoteFolio').value.trim(),
     date: document.getElementById('quoteDate').value,
-    validity: document.getElementById('quoteValidity').value,
-    responsible,
+    responsible: { name: document.getElementById('quoteResponsible').value.trim() },
     client: {
       name: clientName,
       phone: document.getElementById('clientPhone').value.trim(),
@@ -817,7 +479,7 @@ function saveQuoteToHistory() {
       address: document.getElementById('clientAddress').value.trim()
     },
     items: [...state.currentQuoteItems],
-    notes: document.getElementById('quoteNotes').value.trim(),
+    comments: document.getElementById('quoteComments').value.trim(),
     totals,
     status: 'Pendiente',
     createdAt: new Date().toISOString()
@@ -827,11 +489,8 @@ function saveQuoteToHistory() {
   saveStorage();
   renderHistoryTable();
 
-  alert(`¡Cotización ${quote.folio} guardada exitosamente en el historial!`);
-
-  // Incrementar folio para la siguiente
-  const nextNumber = 1000 + state.quotes.length + 1;
-  document.getElementById('quoteFolio').value = `COT-${nextNumber}`;
+  alert(`¡Cotización ${quote.folio || 'sin folio'} guardada exitosamente en el historial!`);
+  document.getElementById('quoteFolio').value = getNextQuoteFolio();
 }
 
 // ============================================================================
@@ -843,9 +502,9 @@ function renderHistoryTable() {
   const search = (document.getElementById('searchHistoryInput').value || '').toLowerCase();
 
   const filtered = state.quotes.filter(q => 
-    q.folio.toLowerCase().includes(search) || 
-    q.client.name.toLowerCase().includes(search) ||
-    (q.responsible && q.responsible.name.toLowerCase().includes(search))
+    (q.folio || '').toLowerCase().includes(search) || 
+    (q.client && q.client.name ? q.client.name : '').toLowerCase().includes(search) ||
+    (q.responsible && q.responsible.name ? q.responsible.name : '').toLowerCase().includes(search)
   );
 
   if (filtered.length === 0) {
@@ -872,13 +531,13 @@ function renderHistoryTable() {
     if (q.status === 'Facturada') statusClass = 'bg-blue-100 text-blue-800';
 
     tr.innerHTML = `
-      <td class="py-3 px-4 font-bold text-blue-600">${q.folio}</td>
-      <td class="py-3 px-4 text-slate-600">${q.date}</td>
+      <td class="py-3 px-4 font-bold text-blue-600">${escapeHtml(q.folio || '')}</td>
+      <td class="py-3 px-4 text-slate-600">${escapeHtml(q.date || '')}</td>
       <td class="py-3 px-4 font-semibold text-slate-900">
-        ${q.client.name}
-        ${q.client.phone ? `<span class="block text-[11px] text-slate-400 font-normal">${q.client.phone}</span>` : ''}
+        ${escapeHtml(q.client && q.client.name ? q.client.name : '')}
+        ${q.client && q.client.phone ? `<span class="block text-[11px] text-slate-400 font-normal">${escapeHtml(q.client.phone)}</span>` : ''}
       </td>
-      <td class="py-3 px-4 text-slate-600">${q.responsible ? q.responsible.name : '-'}</td>
+      <td class="py-3 px-4 text-slate-600">${escapeHtml(q.responsible ? q.responsible.name : '-')}</td>
       <td class="py-3 px-4 text-center text-slate-600">${q.items.length}</td>
       <td class="py-3 px-4 text-right font-black text-slate-900">${formatCurrency(q.totals.total)}</td>
       <td class="py-3 px-4 text-center">
@@ -933,15 +592,14 @@ function duplicateQuote(id) {
   document.getElementById('clientPhone').value = original.client.phone || '';
   document.getElementById('clientEmail').value = original.client.email || '';
   document.getElementById('clientAddress').value = original.client.address || '';
-  document.getElementById('quoteNotes').value = original.notes || '';
-  document.getElementById('discountPercent').value = original.totals.discountPercent || 0;
-
-  if (original.responsible && original.responsible.id) {
-    renderResponsiblesDropdown(original.responsible.id);
-  }
-
-  const nextNumber = 1000 + state.quotes.length + 1;
-  document.getElementById('quoteFolio').value = `COT-${nextNumber}`;
+  document.getElementById('quoteResponsible').value = original.responsible ? original.responsible.name || '' : '';
+  document.getElementById('quoteDate').value = '';
+  document.getElementById('quoteFolio').value = getNextQuoteFolio();
+  document.getElementById('quoteComments').value = original.comments || '';
+  const legacyDepositAmount = Number(original.totals.total) * ((Number(original.totals.depositPercent) || 0) / 100);
+  document.getElementById('depositAmount').value = original.totals.depositAmount !== undefined
+    ? original.totals.depositAmount
+    : legacyDepositAmount || '';
 
   renderQuoteItemsTable();
   calculateQuoteTotals();
@@ -962,186 +620,133 @@ function deleteQuote(id) {
 
 function buildInvoiceHtml(quoteData) {
   const comp = state.company;
-  const itemsRows = quoteData.items.map((item, idx) => `
-    <tr class="border-b border-slate-200">
-      <td class="py-2.5 px-3 text-center text-slate-500 font-bold">${idx + 1}</td>
-      <td class="py-2.5 px-3">
-        <p class="font-bold text-slate-900">${item.productName}</p>
-        ${item.notes ? `<p class="text-[11px] text-slate-500">${item.notes}</p>` : ''}
-      </td>
-      <td class="py-2.5 px-3 text-center text-slate-700 bg-slate-50/70 font-medium">
-        ${item.dimensionDetails}
-      </td>
-      <td class="py-2.5 px-3 text-center font-bold text-slate-800">
-        ${item.totalMeasured.toFixed(2)} ${item.unitLabel}
-      </td>
-      <td class="py-2.5 px-3 text-right text-slate-700 font-medium">
-        $${item.price.toFixed(2)}
-      </td>
-      <td class="py-2.5 px-3 text-right font-black text-slate-900">
-        ${formatCurrency(item.subtotal)}
-      </td>
-    </tr>
-  `).join('');
+  const seller = quoteData.responsible ? quoteData.responsible.name || '' : '';
+  const itemsRows = quoteData.items.map((item, index) => {
+    const values = getQuoteItemValues(item);
+    return `
+      <tr class="border-b border-slate-300">
+        <td class="px-1 py-1 text-center">${index + 1}</td>
+        <td class="px-1 py-1">${escapeHtml(values.concept)}</td>
+        <td class="px-1 py-1 text-center">${escapeHtml(values.width)}</td>
+        <td class="px-1 py-1 text-center">${escapeHtml(values.height)}</td>
+        <td class="px-1 py-1 text-center">${values.quantity}</td>
+        <td class="px-1 py-1 text-right">${formatCurrency(values.listPrice)}</td>
+        <td class="px-1 py-1 text-center">${values.discountPercent}</td>
+        <td class="px-1 py-1 text-right">${formatCurrency(values.unitPrice)}</td>
+        <td class="px-1 py-1 text-right font-semibold">${formatCurrency(values.subtotal)}</td>
+        <td class="px-1 py-1">${escapeHtml(values.comments)}</td>
+      </tr>
+    `;
+  }).join('');
+  const totals = quoteData.totals;
+  const legacyDepositAmount = (Number(totals.total) || 0) * ((Number(totals.depositPercent) || 0) / 100);
+  const depositAmount = totals.depositAmount === undefined ? legacyDepositAmount : Number(totals.depositAmount) || 0;
+  const balanceAmount = totals.balanceAmount === undefined ? totals.total - depositAmount : totals.balanceAmount;
 
   return `
-    <div class="max-w-3xl mx-auto bg-white p-2 sm:p-6 text-slate-800 text-xs">
-      
-      <!-- ENCABEZADO PERSIANAS BELTRAN HMO (AZUL, BLANCO Y NEGRO) -->
-      <div class="flex items-start justify-between border-b-2 border-slate-950 pb-5 mb-5">
-        <div class="space-y-1">
-          <div class="flex items-center space-x-3">
-            <div class="w-10 h-10 rounded-lg bg-slate-950 border border-blue-600 text-white flex items-center justify-center font-black text-sm tracking-wider shadow-sm">
-              PB
+    <div class="max-w-5xl mx-auto bg-white p-3 sm:p-5 text-slate-800 text-[9px]">
+      <div class="grid grid-cols-12 gap-2 items-stretch mb-3">
+        <div class="col-span-9">
+          <h1 class="text-center text-base font-semibold tracking-widest text-slate-500 mb-1">COTIZACIÓN</h1>
+          <div class="border border-slate-500">
+            <div class="grid grid-cols-9">
+              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cliente</div>
+              <div class="col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.name || '')}</div>
+              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Teléfono</div>
+              <div class="col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.phone || '')}</div>
+              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cotización</div>
+              <div class="col-span-1 px-1 py-2 text-center">${escapeHtml(quoteData.folio || '')}</div>
             </div>
-            <div>
-              <div class="flex items-center space-x-2">
-                <h1 class="text-xl font-black text-slate-950 tracking-tight">${comp.name}</h1>
-                <span class="px-1.5 py-0.5 text-[9px] bg-blue-600 text-white font-bold rounded uppercase">HMO</span>
-              </div>
-              <p class="text-[11px] font-semibold text-blue-700">Persianas a la Medida • Fabricación e Instalación</p>
+            <div class="grid grid-cols-9 border-t border-slate-400">
+              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Dirección</div>
+              <div class="col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.address || '')}</div>
+              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Vendedor</div>
+              <div class="col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(seller)}</div>
+              <div class="col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Fecha</div>
+              <div class="col-span-1 px-1 py-2 text-center">${escapeHtml(formatQuoteDate(quoteData.date))}</div>
             </div>
           </div>
-          ${comp.taxId ? `<p class="text-slate-500 font-medium pt-1">RFC / ID Fiscal: <span class="text-slate-800 font-semibold">${comp.taxId}</span></p>` : ''}
-          ${comp.address ? `<p class="text-slate-600">${comp.address}</p>` : ''}
-          <p class="text-slate-600">${comp.phone || ''} ${comp.email ? `• ${comp.email}` : ''}</p>
         </div>
-
-        <div class="text-right">
-          <span class="inline-block px-3 py-1 bg-slate-950 text-white font-black text-xs uppercase tracking-wider rounded mb-1 border-b-2 border-blue-600">
-            COTIZACIÓN
-          </span>
-          <p class="text-lg font-black text-blue-700">${quoteData.folio}</p>
-          <p class="text-slate-500 text-[11px] mt-1">Fecha: <span class="font-bold text-slate-900">${quoteData.date}</span></p>
-          <p class="text-slate-500 text-[11px]">Vigencia: <span class="font-bold text-slate-900">${quoteData.validity}</span></p>
+        <div class="col-span-3 flex items-center justify-center border border-slate-300 p-2">
+          <img src="assets/logo-beltran.svg" alt="Persianas Beltrán HMO" class="w-full max-h-20 object-contain">
         </div>
       </div>
 
-      <!-- DATOS DE CLIENTE Y RESPONSABLE -->
-      <div class="grid grid-cols-2 gap-4 mb-6">
-        
-        <!-- Cliente -->
-        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Cotizado para (Cliente):</span>
-          <p class="font-extrabold text-sm text-slate-900">${quoteData.client.name}</p>
-          ${quoteData.client.phone ? `<p class="text-slate-600 mt-0.5">Tel: ${quoteData.client.phone}</p>` : ''}
-          ${quoteData.client.email ? `<p class="text-slate-600">Email: ${quoteData.client.email}</p>` : ''}
-          ${quoteData.client.address ? `<p class="text-slate-600 mt-1">Lugar de entrega: ${quoteData.client.address}</p>` : ''}
+      <p class="text-center leading-relaxed mb-3">Presentamos esta cotización con el detalle de los productos y servicios solicitados.</p>
+
+      <table class="w-full table-fixed border-collapse border border-slate-500 text-[8px] mb-3">
+        <colgroup>
+          <col style="width:4%"><col style="width:17%"><col style="width:8%"><col style="width:8%">
+          <col style="width:8%"><col style="width:11%"><col style="width:7%"><col style="width:11%">
+          <col style="width:12%"><col style="width:14%">
+        </colgroup>
+        <thead>
+          <tr class="bg-slate-500 text-white font-semibold">
+            <th class="px-1 py-2">#</th>
+            <th class="px-1 py-2 text-left">Concepto</th>
+            <th class="px-1 py-2">Ancho</th>
+            <th class="px-1 py-2">Alto</th>
+            <th class="px-1 py-2">Unidades</th>
+            <th class="px-1 py-2 text-right">Lista</th>
+            <th class="px-1 py-2">Desc. (%)</th>
+            <th class="px-1 py-2 text-right">Precio</th>
+            <th class="px-1 py-2 text-right">Importe</th>
+            <th class="px-1 py-2 text-left">Comentarios</th>
+          </tr>
+        </thead>
+        <tbody>${itemsRows}</tbody>
+      </table>
+
+      <div class="grid grid-cols-12 gap-3 items-start mb-3">
+        <div class="col-span-6">
+          <table class="w-full border-collapse border border-slate-500 text-[9px]">
+            <tbody>
+              <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Anticipo</td><td class="px-2 py-1 text-right">${formatCurrency(depositAmount)}</td></tr>
+              <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Liquidación</td><td class="px-2 py-1 text-right">${formatCurrency(balanceAmount)}</td></tr>
+            </tbody>
+          </table>
         </div>
-
-        <!-- Responsable -->
-        <div class="p-3 bg-slate-50 rounded-lg border border-slate-200">
-          <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Elaborado y atendido por:</span>
-          <p class="font-extrabold text-sm text-blue-700">${quoteData.responsible.name}</p>
-          <p class="text-slate-500 text-[11px] mt-0.5">Responsable de Cotización</p>
-        </div>
-
-      </div>
-
-      <!-- TABLA DE PARTIDAS CON MEDIDAS -->
-      <div class="border border-slate-300 rounded-lg overflow-hidden mb-5">
-        <table class="w-full text-left border-collapse text-xs">
-          <thead>
-            <tr class="bg-slate-900 text-white font-bold uppercase text-[10px] tracking-wider">
-              <th class="py-2.5 px-3 text-center w-8">#</th>
-              <th class="py-2.5 px-3">Descripción</th>
-              <th class="py-2.5 px-3 text-center">Medidas requeridas</th>
-              <th class="py-2.5 px-3 text-center">Total Medido</th>
-              <th class="py-2.5 px-3 text-right">Precio/U</th>
-              <th class="py-2.5 px-3 text-right">Importe</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsRows}
-          </tbody>
-        </table>
-      </div>
-
-      <!-- DESGLOSE DE TOTALES Y CONDICIONES -->
-      <div class="grid grid-cols-12 gap-4 items-start mb-8">
-        
-        <!-- Términos y Notas -->
-        <div class="col-span-7 bg-slate-50 p-3 rounded-lg border border-slate-200">
-          <span class="font-bold text-[10px] uppercase text-slate-500 tracking-wider block mb-1">Términos y Condiciones:</span>
-          <p class="text-[11px] text-slate-600 whitespace-pre-line leading-relaxed">${quoteData.notes || 'Precios sujetos a confirmación de medidas en sitio.'}</p>
-        </div>
-
-        <!-- Resumen Financiero -->
-        <div class="col-span-5 bg-slate-100 p-3.5 rounded-lg border border-slate-200 space-y-1.5 text-xs">
-          <div class="flex justify-between text-slate-600">
-            <span>Subtotal:</span>
-            <span class="font-bold text-slate-800">${formatCurrency(quoteData.totals.subtotal)}</span>
-          </div>
-
-          ${quoteData.totals.discountAmount > 0 ? `
-            <div class="flex justify-between text-slate-600">
-              <span>Descuento (${quoteData.totals.discountPercent}%):</span>
-              <span class="font-bold text-slate-800">-${formatCurrency(quoteData.totals.discountAmount)}</span>
-            </div>
-          ` : ''}
-
-          ${quoteData.totals.taxAmount > 0 ? `
-            <div class="flex justify-between text-slate-600">
-              <span>IVA (${quoteData.totals.taxRate}%):</span>
-              <span class="font-bold text-slate-800">${formatCurrency(quoteData.totals.taxAmount)}</span>
-            </div>
-          ` : ''}
-
-          <div class="pt-2 border-t border-slate-300 flex justify-between items-baseline">
-            <span class="font-black text-slate-900 text-sm">TOTAL:</span>
-            <span class="font-black text-blue-700 text-base">${formatCurrency(quoteData.totals.total)}</span>
-          </div>
-
-          <p class="text-[10px] text-slate-500 text-right pt-1">${numberToWordsSpanish(quoteData.totals.total)}</p>
-        </div>
-
-      </div>
-
-      <!-- FIRMAS -->
-      <div class="grid grid-cols-2 gap-12 pt-8 mt-6 border-t border-slate-200 text-center">
-        <div>
-          <div class="border-b border-slate-400 w-48 mx-auto mb-1"></div>
-          <p class="font-bold text-slate-800">${quoteData.responsible.name}</p>
-          <p class="text-[10px] text-slate-500">Firma del Responsable</p>
-        </div>
-        <div>
-          <div class="border-b border-slate-400 w-48 mx-auto mb-1"></div>
-          <p class="font-bold text-slate-800">${quoteData.client.name}</p>
-          <p class="text-[10px] text-slate-500">Aceptación del Cliente</p>
+        <div class="col-span-6">
+          <table class="w-full border-collapse border border-slate-500 text-[9px]">
+            <tbody>
+              <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Subtotal</td><td class="px-2 py-1 text-right">${formatCurrency(totals.subtotal)}</td></tr>
+              <tr><td class="bg-slate-300 px-2 py-1 font-bold">Total</td><td class="px-2 py-1 text-right font-bold">${formatCurrency(totals.total)}</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
+      <div class="border border-slate-500 px-2 py-2 mb-3 min-h-12">
+        <p class="text-center font-semibold uppercase">Comentarios adicionales:</p>
+        <p class="whitespace-pre-line mt-1">${escapeHtml(quoteData.comments || '')}</p>
+      </div>
+
+      <div class="text-center leading-relaxed">
+        <p class="font-semibold">${numberToWordsSpanish(totals.total)}</p>
+        ${seller ? `<p class="mt-1"><b>Vendedor:</b> ${escapeHtml(seller)}</p>` : ''}
+        ${comp.phone ? `<p>${escapeHtml(comp.phone)}</p>` : ''}
+        ${comp.address ? `<p>${escapeHtml(comp.address)}</p>` : ''}
+        ${comp.email ? `<p>${escapeHtml(comp.email)}</p>` : ''}
+      </div>
     </div>
   `;
 }
-
 function getCurrentQuoteData() {
-  const clientName = document.getElementById('clientName').value.trim() || 'Cliente Mostrador';
-  const responsibleId = document.getElementById('quoteResponsibleSelect').value;
-  const responsible = state.responsibles.find(r => r.id === responsibleId) || {
-    name: 'Asesor de Ventas',
-    position: 'Área de Presupuestos',
-    phone: '',
-    email: ''
-  };
-
   return {
-    folio: document.getElementById('quoteFolio').value.trim() || 'COT-1001',
+    folio: document.getElementById('quoteFolio').value.trim(),
     date: document.getElementById('quoteDate').value,
-    validity: document.getElementById('quoteValidity').value,
-    responsible,
+    responsible: { name: document.getElementById('quoteResponsible').value.trim() },
     client: {
-      name: clientName,
+      name: document.getElementById('clientName').value.trim(),
       phone: document.getElementById('clientPhone').value.trim(),
       email: document.getElementById('clientEmail').value.trim(),
       address: document.getElementById('clientAddress').value.trim()
     },
     items: [...state.currentQuoteItems],
-    notes: document.getElementById('quoteNotes').value.trim(),
+    comments: document.getElementById('quoteComments').value.trim(),
     totals: calculateQuoteTotals()
   };
 }
-
 function openPreviewModal() {
   if (state.currentQuoteItems.length === 0) {
     alert('Agrega al menos una partida a la cotización para ver la vista previa.');
@@ -1215,35 +820,39 @@ function shareViaWhatsApp(customQuoteData = null) {
     return;
   }
 
+  void downloadQuotePdf(quote);
+
   let text = `*COTIZACIÓN - PERSIANAS BELTRAN HMO*\n`;
-  text += `📄 *Folio:* ${quote.folio}\n`;
-  text += `📅 *Fecha:* ${quote.date} | Vigencia: ${quote.validity}\n`;
+  text += `📄 *Folio:* ${quote.folio || ''}\n`;
+  text += `📅 *Fecha:* ${formatQuoteDate(quote.date)}\n`;
   text += `👤 *Cliente:* ${quote.client.name}\n`;
-  text += `👔 *Atendido por:* ${quote.responsible.name}\n`;
+  text += `👔 *Atendido por:* ${quote.responsible ? quote.responsible.name : ''}\n`;
   text += `------------------------------------\n`;
   text += `*DETALLE DE PARTIDAS:*\n`;
 
   quote.items.forEach((item, i) => {
-    text += `\n*${i + 1}. ${item.productName}*\n`;
-    text += `   📐 Medida: ${item.dimensionDetails}\n`;
-    text += `   📊 Total: ${item.totalMeasured.toFixed(2)} ${item.unitLabel}\n`;
-    text += `   💰 Precio: $${item.price.toFixed(2)} / ${item.unitLabel}\n`;
-    text += `   💵 Importe: ${formatCurrency(item.subtotal)}\n`;
+    const values = getQuoteItemValues(item);
+    text += `\n*${i + 1}. ${values.concept}*\n`;
+    text += `   📐 Medidas: ${values.width} × ${values.height}\n`;
+    text += `   📊 Unidades: ${values.quantity}\n`;
+    text += `   💰 Lista: ${formatCurrency(values.listPrice)} | Descuento: ${values.discountPercent}%\n`;
+    text += `   💵 Precio: ${formatCurrency(values.unitPrice)} | Importe: ${formatCurrency(values.subtotal)}\n`;
+    if (values.comments) text += `   💬 ${values.comments}\n`;
   });
 
   text += `\n------------------------------------\n`;
   text += `*Subtotal:* ${formatCurrency(quote.totals.subtotal)}\n`;
-  if (quote.totals.discountAmount > 0) {
+  if (quote.totals.discountAmount > 0 && !quote.items.some(item => item.listPrice !== undefined)) {
     text += `*Descuento (${quote.totals.discountPercent}%):* -${formatCurrency(quote.totals.discountAmount)}\n`;
   }
-  if (quote.totals.taxAmount > 0) {
-    text += `*IVA (${quote.totals.taxRate}%):* ${formatCurrency(quote.totals.taxAmount)}\n`;
-  }
   text += `*TOTAL FINAL:* ${formatCurrency(quote.totals.total)}\n`;
+  if (quote.totals.depositAmount !== undefined) {
+    text += `*Anticipo:* ${formatCurrency(quote.totals.depositAmount)}\n`;
+    text += `*Liquidación:* ${formatCurrency(quote.totals.balanceAmount)}\n`;
+  }
   text += `------------------------------------\n`;
-  if (quote.notes) {
-    text += `📝 *Términos:* ${quote.notes.replace(/\n/g, ' ')}\n`;
-    text += `------------------------------------\n`;
+  if (quote.comments) {
+    text += `💬 *Comentarios adicionales:* ${quote.comments.replace(/\n/g, ' ')}\n`;
   }
   text += `_Persianas Beltran HMO • Fabricación e Instalación a la Medida_\n`;
   text += `_Hermosillo, Sonora • Tel: (662) 123 4567_`;
@@ -1258,7 +867,7 @@ function shareViaWhatsApp(customQuoteData = null) {
 
   if (navigator.share) {
     navigator.share({
-      title: `Cotización ${quote.folio} - Persianas Beltran HMO`,
+      title: `Cotización ${quote.folio || ''} - Persianas Beltran HMO`,
       text: text
     }).catch(() => {
       window.open(waUrl, '_blank');
@@ -1352,7 +961,6 @@ function saveProduct(event) {
   saveStorage();
   closeProductModal();
   renderProductsTable();
-  renderProductsDropdown();
 }
 
 function deleteProduct(id) {
@@ -1360,7 +968,6 @@ function deleteProduct(id) {
     state.products = state.products.filter(p => p.id !== id);
     saveStorage();
     renderProductsTable();
-    renderProductsDropdown();
   }
 }
 
@@ -1435,7 +1042,6 @@ function loadCompanyConfigForm() {
   document.getElementById('cfgCompanyEmail').value = c.email || '';
   document.getElementById('cfgCompanyWebsite').value = c.website || '';
   document.getElementById('cfgCompanyAddress').value = c.address || '';
-  document.getElementById('cfgCompanyTerms').value = c.defaultTerms || '';
 }
 
 function saveCompanyConfig(event) {
@@ -1446,12 +1052,10 @@ function saveCompanyConfig(event) {
     phone: document.getElementById('cfgCompanyPhone').value.trim(),
     email: document.getElementById('cfgCompanyEmail').value.trim(),
     website: document.getElementById('cfgCompanyWebsite').value.trim(),
-    address: document.getElementById('cfgCompanyAddress').value.trim(),
-    defaultTerms: document.getElementById('cfgCompanyTerms').value.trim()
+    address: document.getElementById('cfgCompanyAddress').value.trim()
   };
 
   saveStorage();
-  document.getElementById('headerCompanyName').textContent = state.company.name;
   alert('¡Configuración de la empresa guardada correctamente!');
 }
 
@@ -1488,10 +1092,6 @@ function importDataBackup(event) {
         state.company = data.company || DEFAULT_COMPANY;
         saveStorage();
         loadCompanyConfigForm();
-        renderResponsiblesDropdown();
-        renderProductsDropdown();
-        renderProductsTable();
-        renderResponsiblesGrid();
         renderHistoryTable();
         alert('¡Respaldo restaurado con éxito!');
       } else {
@@ -1504,24 +1104,47 @@ function importDataBackup(event) {
   reader.readAsText(file);
 }
 
-function resetToDemoData() {
-  if (confirm('¿Restablecer el catálogo y responsables a los datos de ejemplo predeterminados?')) {
-    state.responsibles = [...DEFAULT_RESPONSIBLES];
-    state.products = [...DEFAULT_PRODUCTS];
-    state.company = { ...DEFAULT_COMPANY };
-    saveStorage();
-    loadCompanyConfigForm();
-    renderResponsiblesDropdown();
-    renderProductsDropdown();
-    renderProductsTable();
-    renderResponsiblesGrid();
-    alert('Datos restablecidos.');
-  }
-}
-
 // ============================================================================
 // UTILIDADES (MONEDA Y NÚMERO A LETRAS)
 // ============================================================================
+
+function getQuoteItemValues(item) {
+  const listPrice = Number(item.listPrice !== undefined ? item.listPrice : item.price) || 0;
+  const discountPercent = Number(item.discountPercent) || 0;
+  const rawUnitPrice = item.unitPrice !== undefined ? item.unitPrice :
+    item.price !== undefined ? item.price : listPrice * (1 - discountPercent / 100);
+  const unitPrice = Number(rawUnitPrice) || 0;
+  const quantity = Number(item.quantity !== undefined ? item.quantity : item.totalMeasured) || 0;
+
+  return {
+    concept: item.concept || item.productName || '',
+    characteristic: item.characteristic || item.dimensionDetails || '',
+    width: item.width || '',
+    height: item.height || '',
+    quantity,
+    unit: item.unit || item.unitLabel || '',
+    listPrice,
+    discountPercent,
+    unitPrice,
+    subtotal: Number(item.subtotal !== undefined ? item.subtotal : quantity * unitPrice) || 0,
+    comments: item.comments || item.notes || ''
+  };
+}
+
+function formatQuoteDate(date) {
+  const parts = (date || '').split('-');
+  return parts.length === 3 && parts[0].length === 4 ? `${parts[2]}-${parts[1]}-${parts[0]}` : date || '';
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, character => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[character]));
+}
 
 function formatCurrency(amount) {
   return new Intl.NumberFormat('es-MX', {
