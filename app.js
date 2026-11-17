@@ -378,12 +378,8 @@ function addItemToQuote() {
     heightFormatted = parseFloat(heightRaw) > 10 ? `${parseFloat(heightRaw)} cm` : `${parseFloat(heightRaw)} m`;
   }
 
-  // Formato para la columna Unidad de la cotización
+  // Formato para la columna Unidad de la cotización: la cantidad de persianas/productos
   let unitFormatted = `${pieces}`;
-  if (hasDimensions && areaM2 > 0) {
-    const areaRounded = (Math.round(areaM2 * 100) / 100).toFixed(2);
-    unitFormatted = pieces > 1 ? `${pieces} (${areaRounded} m²)` : `${areaRounded} m²`;
-  }
 
   state.currentQuoteItems.push({
     id: `item-${Date.now()}`,
@@ -1290,12 +1286,12 @@ function getQuoteItemValues(item) {
   const rawUnitPrice = item.unitPrice !== undefined ? item.unitPrice :
     item.price !== undefined ? item.price : listPrice * (1 - discountPercent / 100);
   const unitPrice = Number(rawUnitPrice) || 0;
-  const quantity = Number(item.quantity !== undefined ? item.quantity : item.totalMeasured) || 0;
+  const quantity = Number(item.quantity !== undefined ? item.quantity : item.totalMeasured) || 1;
 
-  let unit = item.unit || item.unitLabel || '';
-  if (!unit) {
-    unit = (item.width && item.height) ? `${quantity} m²` : `${quantity}`;
-  }
+  // La columna Unidad muestra directamente la cantidad de persianas/productos (ej: 2)
+  let unit = (item.quantity !== undefined && item.quantity !== null && item.quantity !== '') 
+    ? `${item.quantity}` 
+    : (item.unit && !item.unit.includes('m²') ? item.unit : `${quantity}`);
 
   return {
     concept: item.concept || item.productName || '',
