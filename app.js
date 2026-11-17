@@ -9,11 +9,13 @@
 const DEFAULT_RESPONSIBLES = [
   {
     id: 'resp-1',
-    name: 'Malio Beltran'
+    name: 'David Alejandro Machado Vega',
+    phone: '6622999872'
   },
   {
     id: 'resp-2',
-    name: 'Alma Carrazco'
+    name: 'Malio Beltran',
+    phone: '6621234567'
   }
 ];
 
@@ -79,10 +81,10 @@ const DEFAULT_PRODUCTS = [
 const DEFAULT_COMPANY = {
   name: 'Persianas Beltran HMO',
   taxId: 'PBH-240101-HMO',
-  phone: '(662) 123 4567',
+  phone: '6622999872',
   email: 'contacto@persianasbeltranhmo.com',
   website: 'www.persianasbeltranhmo.com',
-  address: 'Hermosillo, Sonora, México'
+  address: 'Avenida 6 de Abril #356 entre Monteverde y 12 de Octubre, Col. Ley 57. Hermosillo, Sonora, C.P. 83100.'
 };
 
 // Estado global en memoria
@@ -101,6 +103,17 @@ let state = {
 document.addEventListener('DOMContentLoaded', () => {
   loadStorageData();
   document.getElementById('quoteFolio').value = getNextQuoteFolio();
+  
+  const quoteDateInput = document.getElementById('quoteDate');
+  if (quoteDateInput && !quoteDateInput.value) {
+    quoteDateInput.value = new Date().toISOString().slice(0, 10);
+  }
+
+  const quoteRespInput = document.getElementById('quoteResponsible');
+  if (quoteRespInput && !quoteRespInput.value && state.responsibles.length > 0) {
+    quoteRespInput.value = state.responsibles[0].name;
+  }
+
   renderHistoryTable();
   loadCompanyConfigForm();
   updateBadges();
@@ -113,35 +126,36 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadStorageData() {
+  // Helper to parse JSON safely; returns fallback on error.
+  const safeParse = (value, fallback) => {
+    try { return JSON.parse(value); } catch (_) { return fallback; }
+  };
+
   const savedResp = localStorage.getItem('cotizador_responsibles');
-  if (!savedResp || !savedResp.includes('Malio Beltran')) {
+  if (!savedResp) {
     state.responsibles = DEFAULT_RESPONSIBLES;
     localStorage.setItem('cotizador_responsibles', JSON.stringify(DEFAULT_RESPONSIBLES));
   } else {
-    try {
-      state.responsibles = JSON.parse(savedResp);
-    } catch (e) {
-      state.responsibles = DEFAULT_RESPONSIBLES;
-    }
+    state.responsibles = safeParse(savedResp, DEFAULT_RESPONSIBLES);
   }
 
   const savedProd = localStorage.getItem('cotizador_products');
-  if (!savedProd || (savedProd && savedProd.includes('Vidrio Templado'))) {
+  if (!savedProd) {
     state.products = DEFAULT_PRODUCTS;
     localStorage.setItem('cotizador_products', JSON.stringify(DEFAULT_PRODUCTS));
   } else {
-    state.products = JSON.parse(savedProd);
+    state.products = safeParse(savedProd, DEFAULT_PRODUCTS);
   }
 
   const savedQuotes = localStorage.getItem('cotizador_quotes');
-  state.quotes = savedQuotes ? JSON.parse(savedQuotes) : [];
+  state.quotes = safeParse(savedQuotes, []);
 
   const savedComp = localStorage.getItem('cotizador_company');
-  if (!savedComp || (savedComp && savedComp.includes('Soluciones & Cotizaciones'))) {
+  if (!savedComp) {
     state.company = DEFAULT_COMPANY;
     localStorage.setItem('cotizador_company', JSON.stringify(DEFAULT_COMPANY));
   } else {
-    state.company = JSON.parse(savedComp);
+    state.company = safeParse(savedComp, DEFAULT_COMPANY);
   }
 
 }
@@ -296,38 +310,89 @@ function renderResponsiblesGrid() {
 // ============================================================================
 
 function calculateItemTotal() {
-  const quantity = parseFloat(document.getElementById('itemQuantity').value) || 0;
+  const widthRaw = (document.getElementById('itemWidth').value || '').trim();
+  const heightRaw = (document.getElementById('itemHeight').value || '').trim();
+  const quantityInput = document.getElementById('itemQuantity');
+  
+  // Cantidad de piezas que el usuario desea comprar (por defecto 1 si está vacío o <= 0)
+  let pieces = parseFloat(quantityInput.value);
+  if (isNaN(pieces) || pieces <= 0) {
+    pieces = 1;
+  }
+
+  // Extraer números limpios de ancho y alto
+  let w = parseFloat(widthRaw.replace(/[^0-9.]/g, '')) || 0;
+  let h = parseFloat(heightRaw.replace(/[^0-9.]/g, '')) || 0;
+
+  // Si están expresados en centímetros (mayores a 10), convertir a metros para el cálculo de área
+  if (w > 10) w = w / 100;
+  if (h > 10) h = h / 100;
+
+  const areaM2 = (w > 0 && h > 0) ? (w * h) : 0;
+
   const listPrice = parseFloat(document.getElementById('itemListPrice').value) || 0;
   const discountPercent = parseFloat(document.getElementById('itemDiscountPercent').value) || 0;
   const unitPrice = listPrice * (1 - discountPercent / 100);
-  const subtotal = quantity * unitPrice;
+
+  // Si hay medidas (persianas), el precio de lista es por m²:
+  // Importe = piezas × área m² × precio unitario
+  // Si no hay medidas (ej. servicios, piezas fijas):
+  // Importe = piezas × precio unitario
+  let subtotal = 0;
+  if (areaM2 > 0) {
+    subtotal = pieces * areaM2 * unitPrice;
+  } else {
+    subtotal = pieces * unitPrice;
+  }
 
   document.getElementById('liveUnitPrice').textContent = formatCurrency(unitPrice);
   document.getElementById('livePartidaSubtotal').textContent = formatCurrency(subtotal);
 
-  return { quantity, listPrice, discountPercent, unitPrice, subtotal };
+  return { pieces, areaM2, listPrice, discountPercent, unitPrice, subtotal, hasDimensions: (w > 0 && h > 0) };
 }
 
 function addItemToQuote() {
-  const concept = document.getElementById('itemConcept').value.trim();
-  const { quantity, listPrice, discountPercent, unitPrice, subtotal } = calculateItemTotal();
+  const characteristicInput = document.getElementById('itemCharacteristic');
+  const characteristic = characteristicInput ? characteristicInput.value.trim() : '';
+  const widthRaw = document.getElementById('itemWidth').value.trim();
+  const heightRaw = document.getElementById('itemHeight').value.trim();
+  const { pieces, areaM2, listPrice, discountPercent, unitPrice, subtotal, hasDimensions } = calculateItemTotal();
 
-  if (!concept) {
-    alert('Escribe el concepto de la partida.');
-    document.getElementById('itemConcept').focus();
+  if (!characteristic) {
+    alert('Escribe la característica o nombre del producto.');
+    if (characteristicInput) characteristicInput.focus();
     return;
   }
-  if (quantity <= 0 || listPrice < 0 || discountPercent < 0 || discountPercent > 100) {
+  if (pieces <= 0 || listPrice < 0 || discountPercent < 0 || discountPercent > 100) {
     alert('Revisa la cantidad, el precio de lista y el descuento de la partida.');
     return;
   }
 
+  // Dar formato amigable a las medidas como en la foto de referencia (ej: "129 cm" o "1.29 m")
+  let widthFormatted = widthRaw;
+  let heightFormatted = heightRaw;
+  if (widthRaw && !isNaN(widthRaw)) {
+    widthFormatted = parseFloat(widthRaw) > 10 ? `${parseFloat(widthRaw)} cm` : `${parseFloat(widthRaw)} m`;
+  }
+  if (heightRaw && !isNaN(heightRaw)) {
+    heightFormatted = parseFloat(heightRaw) > 10 ? `${parseFloat(heightRaw)} cm` : `${parseFloat(heightRaw)} m`;
+  }
+
+  // Formato para la columna Unidad de la cotización
+  let unitFormatted = `${pieces}`;
+  if (hasDimensions && areaM2 > 0) {
+    const areaRounded = (Math.round(areaM2 * 100) / 100).toFixed(2);
+    unitFormatted = pieces > 1 ? `${pieces} (${areaRounded} m²)` : `${areaRounded} m²`;
+  }
+
   state.currentQuoteItems.push({
     id: `item-${Date.now()}`,
-    concept,
-    width: document.getElementById('itemWidth').value.trim(),
-    height: document.getElementById('itemHeight').value.trim(),
-    quantity,
+    concept: '',
+    characteristic: characteristic,
+    width: widthFormatted,
+    height: heightFormatted,
+    quantity: pieces,
+    unit: unitFormatted,
     listPrice,
     discountPercent,
     unitPrice,
@@ -335,13 +400,19 @@ function addItemToQuote() {
     comments: document.getElementById('itemComments').value.trim()
   });
 
-  ['itemConcept', 'itemWidth', 'itemHeight', 'itemQuantity', 'itemListPrice', 'itemDiscountPercent', 'itemComments'].forEach(id => {
-    document.getElementById(id).value = '';
+  const idsToClear = ['itemCharacteristic', 'itemWidth', 'itemHeight', 'itemListPrice', 'itemDiscountPercent', 'itemComments'];
+  idsToClear.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
+  const qtyInput = document.getElementById('itemQuantity');
+  if (qtyInput) qtyInput.value = '1';
+
   calculateItemTotal();
   renderQuoteItemsTable();
   calculateQuoteTotals();
 }
+
 function removeQuoteItem(index) {
   state.currentQuoteItems.splice(index, 1);
   renderQuoteItemsTable();
@@ -374,15 +445,15 @@ function renderQuoteItemsTable() {
     tr.className = 'hover:bg-slate-50 transition border-b border-slate-100 text-xs';
     tr.innerHTML = `
       <td class="py-3 px-3 text-center font-bold text-slate-500">${index + 1}</td>
-      <td class="py-3 px-3 font-bold text-slate-800">${escapeHtml(values.concept)}</td>
+      <td class="py-3 px-4 font-bold text-slate-800">${escapeHtml(values.characteristic)}</td>
       <td class="py-3 px-3 text-center">${escapeHtml(values.width)}</td>
       <td class="py-3 px-3 text-center">${escapeHtml(values.height)}</td>
-      <td class="py-3 px-3 text-center">${values.quantity}</td>
+      <td class="py-3 px-3 text-center font-medium">${escapeHtml(values.unit)}</td>
       <td class="py-3 px-3 text-right">${formatCurrency(values.listPrice)}</td>
       <td class="py-3 px-3 text-right">${values.discountPercent}%</td>
       <td class="py-3 px-3 text-right">${formatCurrency(values.unitPrice)}</td>
       <td class="py-3 px-3 text-right font-black text-slate-900">${formatCurrency(values.subtotal)}</td>
-      <td class="py-3 px-3">${escapeHtml(values.comments)}</td>
+      <td class="py-3 px-3 text-center font-semibold text-slate-700">${escapeHtml(values.comments)}</td>
       <td class="py-3 px-2 text-center">
         <button type="button" onclick="removeQuoteItem(${index})" class="p-1 text-slate-400 hover:text-rose-600 rounded transition" title="Eliminar partida">
           <i data-lucide="trash-2" class="w-4 h-4"></i>
@@ -399,10 +470,19 @@ function renderQuoteItemsTable() {
  * Cálculo de Subtotal y Total
  */
 function calculateQuoteTotals() {
-  const subtotal = state.currentQuoteItems.reduce((acc, item) => acc + getQuoteItemValues(item).subtotal, 0);
+  const subtotal = state.currentQuoteItems.reduce((acc, item) => acc + (Number(item.subtotal) || 0), 0);
   const total = subtotal;
-  const depositAmount = parseFloat(document.getElementById('depositAmount').value) || 0;
-  const balanceAmount = total - depositAmount;
+
+  const depositInput = document.getElementById('depositAmount');
+  let depositAmount;
+  if (depositInput.value === '' && total > 0) {
+    // Sugerir 50% de anticipo por defecto como en el formato de referencia
+    depositAmount = Math.round((total / 2) * 100) / 100;
+    depositInput.value = depositAmount.toFixed(2);
+  } else {
+    depositAmount = parseFloat(depositInput.value) || 0;
+  }
+  const balanceAmount = Math.max(0, total - depositAmount);
 
   document.getElementById('summarySubtotal').textContent = formatCurrency(subtotal);
   document.getElementById('summaryTotal').textContent = formatCurrency(total);
@@ -423,8 +503,10 @@ function resetQuoteForm() {
   }
   state.currentQuoteItems = [];
   renderQuoteItemsTable();
-  ['itemConcept', 'itemWidth', 'itemHeight', 'itemQuantity', 'itemListPrice', 'itemDiscountPercent', 'itemComments'].forEach(id => {
-    document.getElementById(id).value = '';
+  const idsToClear = ['itemCharacteristic', 'itemWidth', 'itemHeight', 'itemQuantity', 'itemListPrice', 'itemDiscountPercent', 'itemComments'];
+  idsToClear.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
   });
 
   // Resetear campos de cliente
@@ -432,8 +514,10 @@ function resetQuoteForm() {
   document.getElementById('clientPhone').value = '';
   document.getElementById('clientEmail').value = '';
   document.getElementById('clientAddress').value = '';
-  document.getElementById('quoteResponsible').value = '';
-  document.getElementById('quoteDate').value = '';
+  const colonyInput = document.getElementById('clientColony');
+  if (colonyInput) colonyInput.value = '';
+  document.getElementById('quoteResponsible').value = state.responsibles.length > 0 ? state.responsibles[0].name : '';
+  document.getElementById('quoteDate').value = new Date().toISOString().slice(0, 10);
   document.getElementById('quoteFolio').value = getNextQuoteFolio();
   document.getElementById('quoteComments').value = '';
   document.getElementById('depositAmount').value = '';
@@ -466,17 +550,22 @@ function saveQuoteToHistory() {
   }
 
   const totals = calculateQuoteTotals();
+  const colonyInput = document.getElementById('clientColony');
 
   const quote = {
     id: `quote-${Date.now()}`,
     folio: document.getElementById('quoteFolio').value.trim(),
     date: document.getElementById('quoteDate').value,
-    responsible: { name: document.getElementById('quoteResponsible').value.trim() },
+    responsible: { 
+      name: document.getElementById('quoteResponsible').value.trim() || 'David Alejandro Machado Vega',
+      phone: state.company.phone || '6622999872'
+    },
     client: {
       name: clientName,
       phone: document.getElementById('clientPhone').value.trim(),
       email: document.getElementById('clientEmail').value.trim(),
-      address: document.getElementById('clientAddress').value.trim()
+      address: document.getElementById('clientAddress').value.trim(),
+      colony: colonyInput ? (colonyInput.value.trim() || 'N/A') : 'N/A'
     },
     items: [...state.currentQuoteItems],
     comments: document.getElementById('quoteComments').value.trim(),
@@ -509,7 +598,7 @@ function renderHistoryTable() {
 
   if (filtered.length === 0) {
     tbody.innerHTML = `
-      <tr>
+      <tr class="history-empty-row">
         <td colspan="8" class="py-8 text-center text-slate-400">
           <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
           <p class="font-medium">No hay cotizaciones registradas</p>
@@ -531,16 +620,16 @@ function renderHistoryTable() {
     if (q.status === 'Facturada') statusClass = 'bg-blue-100 text-blue-800';
 
     tr.innerHTML = `
-      <td class="py-3 px-4 font-bold text-blue-600">${escapeHtml(q.folio || '')}</td>
-      <td class="py-3 px-4 text-slate-600">${escapeHtml(q.date || '')}</td>
-      <td class="py-3 px-4 font-semibold text-slate-900">
+      <td data-label="Folio" class="py-3 px-4 font-bold text-blue-600">${escapeHtml(q.folio || '')}</td>
+      <td data-label="Fecha" class="py-3 px-4 text-slate-600">${escapeHtml(q.date || '')}</td>
+      <td data-label="Cliente" class="py-3 px-4 font-semibold text-slate-900">
         ${escapeHtml(q.client && q.client.name ? q.client.name : '')}
         ${q.client && q.client.phone ? `<span class="block text-[11px] text-slate-400 font-normal">${escapeHtml(q.client.phone)}</span>` : ''}
       </td>
-      <td class="py-3 px-4 text-slate-600">${escapeHtml(q.responsible ? q.responsible.name : '-')}</td>
-      <td class="py-3 px-4 text-center text-slate-600">${q.items.length}</td>
-      <td class="py-3 px-4 text-right font-black text-slate-900">${formatCurrency(q.totals.total)}</td>
-      <td class="py-3 px-4 text-center">
+      <td data-label="Vendedor" class="py-3 px-4 text-slate-600">${escapeHtml(q.responsible ? q.responsible.name : '-')}</td>
+      <td data-label="Partidas" class="py-3 px-4 text-center text-slate-600">${q.items.length}</td>
+      <td data-label="Total" class="py-3 px-4 text-right font-black text-slate-900">${formatCurrency(q.totals.total)}</td>
+      <td data-label="Estado" class="py-3 px-4 text-center">
         <select onchange="updateQuoteStatus('${q.id}', this.value)" class="text-[11px] font-semibold rounded px-2 py-0.5 border border-slate-200 ${statusClass}">
           <option value="Pendiente" ${q.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
           <option value="Aprobada" ${q.status === 'Aprobada' ? 'selected' : ''}>Aprobada</option>
@@ -548,8 +637,8 @@ function renderHistoryTable() {
           <option value="Rechazada" ${q.status === 'Rechazada' ? 'selected' : ''}>Rechazada</option>
         </select>
       </td>
-      <td class="py-3 px-3 text-center">
-        <div class="flex items-center justify-center space-x-1 sm:space-x-1.5">
+      <td data-label="Acciones" class="py-3 px-3 text-center">
+        <div class="history-actions flex items-center justify-center space-x-1 sm:space-x-1.5">
           <button type="button" onclick="downloadSavedQuotePdf('${q.id}')" class="p-1 text-slate-500 hover:text-blue-600 rounded transition" title="Descargar PDF">
             <i data-lucide="download" class="w-3.5 h-3.5"></i>
           </button>
@@ -619,134 +708,176 @@ function deleteQuote(id) {
 // ============================================================================
 
 function buildInvoiceHtml(quoteData) {
-  const comp = state.company;
-  const seller = quoteData.responsible ? quoteData.responsible.name || '' : '';
-  const itemsRows = quoteData.items.map((item, index) => {
+  const comp = state.company || {};
+  const sellerName = (quoteData.responsible && quoteData.responsible.name) ? quoteData.responsible.name : (DEFAULT_RESPONSIBLES[0].name || '');
+  const sellerPhone = (quoteData.responsible && quoteData.responsible.phone) ? quoteData.responsible.phone : (comp.phone || '6622999872');
+  const logoSrc = (typeof LOGO_BELTRAN_BASE64 !== 'undefined' && LOGO_BELTRAN_BASE64) ? LOGO_BELTRAN_BASE64 : 'logo-beltran.png';
+
+  const itemsRows = quoteData.items.map((item) => {
     const values = getQuoteItemValues(item);
     return `
-      <tr class="border-b border-slate-300">
-        <td class="px-1 py-1 text-center" data-label="Partida">${index + 1}</td>
-        <td class="px-1 py-1" data-label="Concepto">${escapeHtml(values.concept)}</td>
-        <td class="px-1 py-1 text-center" data-label="Ancho (m)">${escapeHtml(values.width)}</td>
-        <td class="px-1 py-1 text-center" data-label="Alto (m)">${escapeHtml(values.height)}</td>
-        <td class="px-1 py-1 text-center" data-label="Unidades">${values.quantity}</td>
-        <td class="px-1 py-1 text-right" data-label="Precio de lista">${formatCurrency(values.listPrice)}</td>
-        <td class="px-1 py-1 text-center" data-label="Descuento">${values.discountPercent}%</td>
-        <td class="px-1 py-1 text-right" data-label="Precio final">${formatCurrency(values.unitPrice)}</td>
-        <td class="px-1 py-1 text-right font-semibold" data-label="Importe">${formatCurrency(values.subtotal)}</td>
-        <td class="px-1 py-1" data-label="Comentarios">${escapeHtml(values.comments)}</td>
+      <tr style="background-color: #ffffff; color: #000000;">
+        <td style="border: 1px solid #7f7f7f; padding: 5px 6px; text-align: center; font-weight: 500;">${escapeHtml(values.characteristic || values.concept)}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 2px; text-align: center;">${escapeHtml(values.width)}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 2px; text-align: center;">${escapeHtml(values.height)}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 2px; text-align: center;">${escapeHtml(values.unit)}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 4px; text-align: center;">${formatCurrency(values.listPrice)}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 2px; text-align: center;">${values.discountPercent}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 4px; text-align: center;">${formatCurrency(values.unitPrice)}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 4px; text-align: center; font-weight: 500;">${formatCurrency(values.subtotal)}</td>
+        <td style="border: 1px solid #7f7f7f; padding: 5px 4px; text-align: center; font-weight: bold;">${escapeHtml(values.comments)}</td>
       </tr>
     `;
   }).join('');
-  const totals = quoteData.totals;
-  const legacyDepositAmount = (Number(totals.total) || 0) * ((Number(totals.depositPercent) || 0) / 100);
-  const depositAmount = totals.depositAmount === undefined ? legacyDepositAmount : Number(totals.depositAmount) || 0;
-  const balanceAmount = totals.balanceAmount === undefined ? totals.total - depositAmount : totals.balanceAmount;
+
+  const totals = quoteData.totals || {};
+  const depositAmount = totals.depositAmount !== undefined ? Number(totals.depositAmount) : (Number(totals.total || 0) / 2);
+  const balanceAmount = totals.balanceAmount !== undefined ? Number(totals.balanceAmount) : Math.max(0, Number(totals.total || 0) - depositAmount);
 
   return `
-    <div class="invoice-page max-w-5xl mx-auto bg-white p-3 sm:p-5 text-slate-800 text-[9px]">
-      <div class="invoice-header-grid grid grid-cols-1 sm:grid-cols-12 gap-2 items-stretch mb-3">
-        <div class="sm:col-span-9">
-          <h1 class="text-center text-base font-semibold tracking-widest text-slate-500 mb-1">COTIZACIÓN</h1>
-          <div class="border border-slate-500">
-            <div class="invoice-info-grid grid grid-cols-2 sm:grid-cols-9">
-              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cliente</div>
-              <div class="invoice-value col-span-1 sm:col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.name || '')}</div>
-              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Teléfono</div>
-              <div class="invoice-value col-span-1 sm:col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.phone || '')}</div>
-              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Cotización</div>
-              <div class="invoice-value col-span-1 sm:col-span-1 px-1 py-2 text-center">${escapeHtml(quoteData.folio || '')}</div>
-            </div>
-            <div class="invoice-info-grid grid grid-cols-2 sm:grid-cols-9 border-t border-slate-400">
-              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Dirección</div>
-              <div class="invoice-value col-span-1 sm:col-span-3 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(quoteData.client.address || '')}</div>
-              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Vendedor</div>
-              <div class="invoice-value col-span-1 sm:col-span-2 px-1 py-2 text-center border-r border-slate-400">${escapeHtml(seller)}</div>
-              <div class="invoice-label col-span-1 bg-slate-500 text-white px-1 py-2 text-center">Fecha</div>
-              <div class="invoice-value col-span-1 sm:col-span-1 px-1 py-2 text-center">${escapeHtml(formatQuoteDate(quoteData.date))}</div>
-            </div>
-          </div>
-        </div>
-        <div class="sm:col-span-3 flex items-center justify-center border border-slate-300 p-2">
-          <img src="logo-beltran.svg" alt="Persianas Beltrán HMO" class="w-full max-h-20 object-contain">
+    <div class="invoice-page" style="width: 720px; max-width: 720px; min-width: 720px; margin: 0 auto; background: #ffffff; color: #111111; font-family: Arial, Helvetica, sans-serif; font-size: 10px; line-height: 1.3; padding: 12px; box-sizing: border-box;">
+      
+      <!-- TÍTULO -->
+      <div style="font-size: 17px; font-weight: 600; letter-spacing: 2.5px; color: #7f7f7f; margin-bottom: 8px; text-align: left; padding-left: 2px;">
+        COTIZACIÓN
+      </div>
+
+      <!-- ENCABEZADO CON TABLA DE CLIENTE Y LOGO -->
+      <div style="display: flex; gap: 8px; align-items: stretch; margin-bottom: 8px;">
+        
+        <!-- Tabla de Datos -->
+        <table style="flex: 1; border-collapse: collapse; border: 1.5px solid #7f7f7f; font-size: 10px; width: 100%; table-layout: fixed;">
+          <tr>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 5px 3px; border: 1px solid #7f7f7f; width: 12%;">Cliente</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 5px 4px; border: 1px solid #7f7f7f; width: 26%; font-weight: 500;">${escapeHtml(quoteData.client.name || '')}</td>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 5px 3px; border: 1px solid #7f7f7f; width: 12%;">Teléfono</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 5px 4px; border: 1px solid #7f7f7f; width: 16%;">${escapeHtml(quoteData.client.phone || '')}</td>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 5px 3px; border: 1px solid #7f7f7f; width: 15%; white-space: nowrap;">Cotización</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 5px 4px; border: 1px solid #7f7f7f; width: 19%; font-weight: bold; white-space: nowrap;">${escapeHtml(quoteData.folio || '')}</td>
+          </tr>
+          <tr>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 5px 3px; border: 1px solid #7f7f7f;">Dirección</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 5px 4px; border: 1px solid #7f7f7f;">${escapeHtml(quoteData.client.address || '')}</td>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 5px 3px; border: 1px solid #7f7f7f;">Colonia</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 5px 4px; border: 1px solid #7f7f7f;">${escapeHtml(quoteData.client.colony || 'N/A')}</td>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 5px 3px; border: 1px solid #7f7f7f; white-space: nowrap;">Fecha</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 5px 4px; border: 1px solid #7f7f7f; white-space: nowrap;">${escapeHtml(formatQuoteDate(quoteData.date))}</td>
+          </tr>
+        </table>
+
+        <!-- Logo Persianas Beltrán -->
+        <div style="width: 140px; min-width: 140px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1.5px solid #888888; border-radius: 8px; padding: 3px 6px; background: #ffffff;">
+          <img src="${logoSrc}" alt="Persianas Beltrán HMO" style="max-height: 52px; max-width: 100%; object-fit: contain;">
         </div>
       </div>
 
-      <p class="text-center leading-relaxed mb-3">Presentamos esta cotización con el detalle de los productos y servicios solicitados.</p>
+      <!-- TEXTO INTRODUCTORIO -->
+      <p style="text-align: center; font-size: 9.5px; color: #333333; margin: 6px 0 10px 0; line-height: 1.35;">
+        Presentamos para ser considerada nuestra cotización, en la que ofrecemos el producto ideal con mayor calidad para su necesidad decorativa. Para nosotros también es importante su patrimonio.
+      </p>
 
-      <table class="invoice-items-table w-full table-fixed border-collapse border border-slate-500 text-[8px] mb-3">
-        <colgroup>
-          <col style="width:4%"><col style="width:17%"><col style="width:8%"><col style="width:8%">
-          <col style="width:8%"><col style="width:11%"><col style="width:7%"><col style="width:11%">
-          <col style="width:12%"><col style="width:14%">
-        </colgroup>
+      <!-- TABLA DE PARTIDAS -->
+      <table style="width: 100%; border-collapse: collapse; border: 1.5px solid #7f7f7f; font-size: 10px; margin-bottom: 10px;">
         <thead>
-          <tr class="bg-slate-500 text-white font-semibold">
-            <th class="px-1 py-2">#</th>
-            <th class="px-1 py-2 text-left">Concepto</th>
-            <th class="px-1 py-2">Ancho (m)</th>
-            <th class="px-1 py-2">Alto (m)</th>
-            <th class="px-1 py-2">Unidades</th>
-            <th class="px-1 py-2 text-right">Lista</th>
-            <th class="px-1 py-2">Desc. (%)</th>
-            <th class="px-1 py-2 text-right">Precio</th>
-            <th class="px-1 py-2 text-right">Importe</th>
-            <th class="px-1 py-2 text-left">Comentarios</th>
+          <tr style="background-color: #888888; color: #ffffff;">
+            <th style="border: 1px solid #7f7f7f; padding: 5px 6px; font-weight: 600; text-align: center; width: 26%;">Característica / Producto</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 2px; font-weight: 600; text-align: center; width: 9%;">Ancho</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 2px; font-weight: 600; text-align: center; width: 9%;">Alto</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 2px; font-weight: 600; text-align: center; width: 9%;">Unidad</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 4px; font-weight: 600; text-align: center; width: 10%;">Lista</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 2px; font-weight: 600; text-align: center; width: 8%;">Desc. (%)</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 4px; font-weight: 600; text-align: center; width: 11%;">Precio</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 4px; font-weight: 600; text-align: center; width: 12%;">Importe</th>
+            <th style="border: 1px solid #7f7f7f; padding: 5px 4px; font-weight: 600; text-align: center; width: 11%;">Comentarios</th>
           </tr>
         </thead>
-        <tbody>${itemsRows}</tbody>
+        <tbody>
+          ${itemsRows}
+        </tbody>
       </table>
 
-      <div class="invoice-totals-grid grid grid-cols-12 gap-3 items-start mb-3">
-        <div class="col-span-12 sm:col-span-6">
-          <table class="w-full border-collapse border border-slate-500 text-[9px]">
-            <tbody>
-              <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Anticipo</td><td class="px-2 py-1 text-right">${formatCurrency(depositAmount)}</td></tr>
-              <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Liquidación</td><td class="px-2 py-1 text-right">${formatCurrency(balanceAmount)}</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="col-span-12 sm:col-span-6">
-          <table class="w-full border-collapse border border-slate-500 text-[9px]">
-            <tbody>
-              <tr><td class="bg-slate-300 px-2 py-1 font-semibold">Subtotal</td><td class="px-2 py-1 text-right">${formatCurrency(totals.subtotal)}</td></tr>
-              <tr><td class="bg-slate-300 px-2 py-1 font-bold">Total</td><td class="px-2 py-1 text-right font-bold">${formatCurrency(totals.total)}</td></tr>
-            </tbody>
-          </table>
+      <!-- TOTALES Y ANTICIPO -->
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+        
+        <!-- Anticipo y Liquidación -->
+        <table style="width: 28%; border-collapse: collapse; border: 1px solid #7f7f7f; font-size: 10px;">
+          <tr>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f; width: 45%;">Anticipo</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f; width: 55%;">${formatCurrency(depositAmount)}</td>
+          </tr>
+          <tr>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f;">Liquidación</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f;">${formatCurrency(balanceAmount)}</td>
+          </tr>
+        </table>
+
+        <!-- Subtotal, IVA, Total -->
+        <table style="width: 28%; border-collapse: collapse; border: 1px solid #7f7f7f; font-size: 10px;">
+          <tr>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f; width: 45%;">Sub-total</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f; width: 55%; font-weight: 500;">${formatCurrency(totals.subtotal || 0)}</td>
+          </tr>
+          <tr>
+            <td style="background-color: #888888; color: #ffffff; font-weight: 500; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f;">I.V.A.</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f;">$0.00</td>
+          </tr>
+          <tr>
+            <td style="background-color: #888888; color: #ffffff; font-weight: bold; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f;">Total</td>
+            <td style="background-color: #ffffff; color: #000000; text-align: center; padding: 4px 6px; border: 1px solid #7f7f7f; font-weight: bold;">${formatCurrency(totals.total || 0)}</td>
+          </tr>
+        </table>
+
+      </div>
+
+      <!-- COMENTARIOS ADICIONALES -->
+      <div style="border: 1.5px solid #444444; padding: 6px 10px; margin-bottom: 8px; text-align: center; font-size: 9.5px; background: #ffffff;">
+        <div style="font-weight: bold; margin-bottom: 3px; letter-spacing: 0.5px; color: #000000;">COMENTARIOS ADICIONALES:</div>
+        <div style="color: #333333; line-height: 1.35;">
+          Las unidades representan el área mínima recomendada (m²). Le sugerimos agendar cita para confirmar las medidas y presentar nuestro catálogo de telas.${quoteData.comments ? `<br><span style="font-weight: 600; color: #000000; display: inline-block; margin-top: 3px;">${escapeHtml(quoteData.comments)}</span>` : ''}
         </div>
       </div>
 
-      <div class="invoice-comments border border-slate-500 px-2 py-2 mb-3 min-h-12">
-        <p class="text-center font-semibold uppercase">Comentarios adicionales:</p>
-        <p class="whitespace-pre-line mt-1">${escapeHtml(quoteData.comments || '')}</p>
+      <!-- CONDICIONES COMERCIALES -->
+      <div style="border: 1px solid #888888; background-color: #efefef; padding: 6px 10px; margin-bottom: 12px; text-align: center; font-size: 9.5px;">
+        <div style="font-weight: bold; margin-bottom: 3px; letter-spacing: 0.5px; color: #000000;">CONDICIONES COMERCIALES</div>
+        <div style="color: #333333; line-height: 1.35;">
+          1.- Precios en Pesos Mexicanos, 2.- Entregas en Hermosillo en 10 días hábiles, 3.- Vigencia de cotización de 15 días o agotar existencia.
+        </div>
       </div>
 
-      <div class="text-center leading-relaxed">
-        <p class="font-semibold">${numberToWordsSpanish(totals.total)}</p>
-        ${seller ? `<p class="mt-1"><b>Vendedor:</b> ${escapeHtml(seller)}</p>` : ''}
-        ${comp.phone ? `<p>${escapeHtml(comp.phone)}</p>` : ''}
-        ${comp.address ? `<p>${escapeHtml(comp.address)}</p>` : ''}
-        ${comp.email ? `<p>${escapeHtml(comp.email)}</p>` : ''}
+      <!-- PIE DE PÁGINA -->
+      <div style="text-align: center; font-size: 9.5px; color: #222222; line-height: 1.45;">
+        <div><b>Vendedor:</b> ${escapeHtml(sellerName)} &nbsp;&nbsp; <b>Celular:</b> ${escapeHtml(sellerPhone)}</div>
+        <div>${escapeHtml(comp.address || 'Avenida 6 de Abril #356 entre Monteverde y 12 de Octubre, Col. Ley 57.')}</div>
+        <div>Hermosillo, Sonora, C.P. 83100.</div>
       </div>
+
     </div>
   `;
 }
+
 function getCurrentQuoteData() {
+  const colonyInput = document.getElementById('clientColony');
   return {
     folio: document.getElementById('quoteFolio').value.trim(),
     date: document.getElementById('quoteDate').value,
-    responsible: { name: document.getElementById('quoteResponsible').value.trim() },
+    responsible: { 
+      name: document.getElementById('quoteResponsible').value.trim() || 'David Alejandro Machado Vega',
+      phone: state.company.phone || '6622999872'
+    },
     client: {
       name: document.getElementById('clientName').value.trim(),
       phone: document.getElementById('clientPhone').value.trim(),
       email: document.getElementById('clientEmail').value.trim(),
-      address: document.getElementById('clientAddress').value.trim()
+      address: document.getElementById('clientAddress').value.trim(),
+      colony: colonyInput ? (colonyInput.value.trim() || 'N/A') : 'N/A'
     },
     items: [...state.currentQuoteItems],
     comments: document.getElementById('quoteComments').value.trim(),
     totals: calculateQuoteTotals()
   };
 }
+
 function openPreviewModal() {
   if (state.currentQuoteItems.length === 0) {
     alert('Agrega al menos una partida a la cotización para ver la vista previa.');
@@ -771,8 +902,13 @@ async function downloadQuotePdf(customQuoteData = null) {
     return;
   }
 
+  const invoiceHtml = buildInvoiceHtml(quoteData);
+
+  // Actualizar también la vista previa en el modal si está abierto
   const invoiceContainer = document.getElementById('printableInvoice');
-  invoiceContainer.innerHTML = buildInvoiceHtml(quoteData);
+  if (invoiceContainer) {
+    invoiceContainer.innerHTML = invoiceHtml;
+  }
 
   const btnModal = document.getElementById('btnDownloadPdfModal');
   if (btnModal) {
@@ -783,17 +919,52 @@ async function downloadQuotePdf(customQuoteData = null) {
   const cleanClient = (quoteData.client && quoteData.client.name ? quoteData.client.name : 'Cliente').replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 15);
   const filename = `Cotizacion_${cleanFolio}_${cleanClient}_Persianas_Beltran.pdf`;
 
+  // Contenedor temporal aislado sin interferencia de scroll ni márgenes de ventana
+  const exportWrapper = document.createElement('div');
+  exportWrapper.id = 'pdf-export-wrapper';
+  exportWrapper.style.position = 'absolute';
+  exportWrapper.style.left = '0px';
+  exportWrapper.style.top = '0px';
+  exportWrapper.style.width = '720px';
+  exportWrapper.style.minWidth = '720px';
+  exportWrapper.style.maxWidth = '720px';
+  exportWrapper.style.background = '#ffffff';
+  exportWrapper.style.margin = '0';
+  exportWrapper.style.padding = '0';
+  exportWrapper.style.boxSizing = 'border-box';
+  exportWrapper.style.zIndex = '999999';
+  exportWrapper.innerHTML = invoiceHtml;
+  document.body.appendChild(exportWrapper);
+
+  const targetElement = exportWrapper.firstElementChild || exportWrapper;
+  targetElement.style.margin = '0';
+  targetElement.style.width = '720px';
+  targetElement.style.maxWidth = '720px';
+
+  // Esperar un instante para garantizar que el renderizado de DOM y estilos esté finalizado
+  await new Promise(resolve => setTimeout(resolve, 150));
+
   const opt = {
-    margin: [6, 6, 6, 6],
+    margin: [8, 8, 8, 8],
     filename: filename,
     image: { type: 'jpeg', quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+      width: 720,
+      windowWidth: 720
+    },
     jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
   };
 
   try {
     if (window.html2pdf) {
-      await html2pdf().set(opt).from(invoiceContainer).save();
+      await html2pdf().set(opt).from(targetElement).save();
     } else {
       openPreviewModal();
       window.print();
@@ -803,6 +974,9 @@ async function downloadQuotePdf(customQuoteData = null) {
     openPreviewModal();
     window.print();
   } finally {
+    if (exportWrapper && exportWrapper.parentNode) {
+      exportWrapper.parentNode.removeChild(exportWrapper);
+    }
     if (btnModal) {
       btnModal.innerHTML = '<i data-lucide="download" class="w-3.5 h-3.5 mr-1"></i> Descargar PDF';
       if (window.lucide) window.lucide.createIcons();
@@ -832,9 +1006,11 @@ function shareViaWhatsApp(customQuoteData = null) {
 
   quote.items.forEach((item, i) => {
     const values = getQuoteItemValues(item);
-    text += `\n*${i + 1}. ${values.concept}*\n`;
-    text += `   📐 Medidas (m): ${values.width} × ${values.height}\n`;
-    text += `   📊 Unidades: ${values.quantity}\n`;
+    text += `\n*${i + 1}. ${values.concept}*`;
+    if (values.characteristic) text += ` - ${values.characteristic}`;
+    text += `\n`;
+    if (values.width && values.height) text += `   📐 Medidas: ${values.width} × ${values.height}\n`;
+    text += `   📊 Unidades: ${values.unit || values.quantity}\n`;
     text += `   💰 Lista: ${formatCurrency(values.listPrice)} | Descuento: ${values.discountPercent}%\n`;
     text += `   💵 Precio: ${formatCurrency(values.unitPrice)} | Importe: ${formatCurrency(values.subtotal)}\n`;
     if (values.comments) text += `   💬 ${values.comments}\n`;
@@ -1116,13 +1292,18 @@ function getQuoteItemValues(item) {
   const unitPrice = Number(rawUnitPrice) || 0;
   const quantity = Number(item.quantity !== undefined ? item.quantity : item.totalMeasured) || 0;
 
+  let unit = item.unit || item.unitLabel || '';
+  if (!unit) {
+    unit = (item.width && item.height) ? `${quantity} m²` : `${quantity}`;
+  }
+
   return {
     concept: item.concept || item.productName || '',
     characteristic: item.characteristic || item.dimensionDetails || '',
     width: item.width || '',
     height: item.height || '',
     quantity,
-    unit: item.unit || item.unitLabel || '',
+    unit: unit,
     listPrice,
     discountPercent,
     unitPrice,
@@ -1137,6 +1318,7 @@ function formatQuoteDate(date) {
 }
 
 function escapeHtml(value) {
+  if (value === null || value === undefined) return '';
   return String(value).replace(/[&<>"']/g, character => ({
     '&': '&amp;',
     '<': '&lt;',

@@ -80,6 +80,90 @@ html, body {
 }
 
 @media screen and (max-width: 639px) {
+  #historyTable {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #historyTable thead {
+    display: none;
+  }
+
+  #historyTable tbody {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+
+  #historyTable tbody tr:not(.history-empty-row) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+    padding: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.75rem;
+    background: #fff;
+  }
+
+  #historyTable tbody tr:not(.history-empty-row) td {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: 0.4rem !important;
+    border: 0 !important;
+    font-size: 0.8rem;
+    text-align: left !important;
+    overflow-wrap: anywhere;
+  }
+
+  #historyTable tbody td::before {
+    content: attr(data-label);
+    margin-bottom: 0.15rem;
+    color: #64748b;
+    font-size: 0.65rem;
+    font-weight: 700;
+  }
+
+  #historyTable tbody td[data-label="Cliente"],
+  #historyTable tbody td[data-label="Acciones"] {
+    grid-column: 1 / -1;
+  }
+
+  #historyTable tbody td[data-label="Estado"] select {
+    width: 100%;
+    min-height: 2.25rem;
+  }
+
+  #historyTable .history-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  #historyTable .history-actions button {
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    place-items: center;
+    background: #f1f5f9;
+  }
+
+  #historyTable tbody tr.history-empty-row {
+    display: block;
+  }
+
+  #historyTable tbody tr.history-empty-row td {
+    display: block;
+    padding: 2rem 0.5rem !important;
+    border: 0 !important;
+    text-align: center !important;
+  }
+
+  #historyTable tbody tr.history-empty-row td::before {
+    content: none;
+  }
+
   #printableInvoice .invoice-page {
     font-size: 10px;
   }
