@@ -115,6 +115,11 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   renderHistoryTable();
+  const reportMonthInput = document.getElementById('reportMonth');
+  if (reportMonthInput) {
+    reportMonthInput.value = new Date().toISOString().slice(0, 7);
+  }
+  renderReport();
   loadCompanyConfigForm();
   updateBadges();
   calculateQuoteTotals();
@@ -128,6 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function loadStorageData() {
   // Helper to parse JSON safely; returns fallback on error.
   const safeParse = (value, fallback) => {
+    if (!value) return fallback;
     try { return JSON.parse(value); } catch (_) { return fallback; }
   };
 
@@ -149,6 +155,7 @@ function loadStorageData() {
 
   const savedQuotes = localStorage.getItem('cotizador_quotes');
   state.quotes = safeParse(savedQuotes, []);
+  if (!Array.isArray(state.quotes)) state.quotes = [];
 
   const savedComp = localStorage.getItem('cotizador_company');
   if (!savedComp) {
@@ -173,7 +180,8 @@ function updateBadges() {
 }
 
 function getNextQuoteFolio() {
-  const highestNumber = state.quotes.reduce((max, quote) => {
+  const quotes = Array.isArray(state.quotes) ? state.quotes : [];
+  const highestNumber = quotes.reduce((max, quote) => {
     const match = /^COT-(\d+)$/i.exec(quote.folio || '');
     return match ? Math.max(max, Number(match[1])) : max;
   }, 1000);
@@ -196,6 +204,10 @@ function switchTab(tabId) {
   const activeBtn = document.getElementById(`btn-${tabId}`);
   if (activeBtn) {
     activeBtn.classList.add('active');
+  }
+
+  if (tabId === 'tab-reporteria') {
+    renderReport();
   }
 
   if (window.lucide) {
@@ -573,6 +585,7 @@ function saveQuoteToHistory() {
   state.quotes.unshift(quote);
   saveStorage();
   renderHistoryTable();
+  renderReport();
 
   alert(`¡Cotización ${quote.folio || 'sin folio'} guardada exitosamente en el historial!`);
   document.getElementById('quoteFolio').value = getNextQuoteFolio();
@@ -614,6 +627,7 @@ function renderHistoryTable() {
     if (q.status === 'Aprobada') statusClass = 'bg-emerald-100 text-emerald-800';
     if (q.status === 'Rechazada') statusClass = 'bg-rose-100 text-rose-800';
     if (q.status === 'Facturada') statusClass = 'bg-blue-100 text-blue-800';
+    if (q.status === 'Liquidado') statusClass = 'bg-teal-100 text-teal-800';
 
     tr.innerHTML = `
       <td data-label="Folio" class="py-3 px-4 font-bold text-blue-600">${escapeHtml(q.folio || '')}</td>
@@ -630,6 +644,7 @@ function renderHistoryTable() {
           <option value="Pendiente" ${q.status === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
           <option value="Aprobada" ${q.status === 'Aprobada' ? 'selected' : ''}>Aprobada</option>
           <option value="Facturada" ${q.status === 'Facturada' ? 'selected' : ''}>Facturada</option>
+          <option value="Liquidado" ${q.status === 'Liquidado' ? 'selected' : ''}>Liquidado</option>
           <option value="Rechazada" ${q.status === 'Rechazada' ? 'selected' : ''}>Rechazada</option>
         </select>
       </td>
@@ -644,6 +659,13 @@ function renderHistoryTable() {
           <button type="button" onclick="previewSavedQuote('${q.id}')" class="p-1 text-slate-500 hover:text-slate-800 rounded transition" title="Ver Vista Previa">
             <i data-lucide="eye" class="w-3.5 h-3.5"></i>
           </button>
+          ${q.status === 'Liquidado'
+            ? `<button type="button" class="p-1 text-teal-600 rounded transition cursor-default" title="Pago liquidado" disabled>
+                <i data-lucide="badge-check" class="w-3.5 h-3.5"></i>
+              </button>`
+            : `<button type="button" onclick="markQuoteAsPaid('${q.id}')" class="p-1 text-slate-500 hover:text-teal-600 rounded transition" title="Marcar como liquidado">
+                <i data-lucide="badge-dollar-sign" class="w-3.5 h-3.5"></i>
+              </button>`}
           <button type="button" onclick="duplicateQuote('${q.id}')" class="p-1 text-slate-500 hover:text-indigo-600 rounded transition" title="Duplicar">
             <i data-lucide="copy" class="w-3.5 h-3.5"></i>
           </button>
@@ -663,9 +685,22 @@ function updateQuoteStatus(id, newStatus) {
   const quote = state.quotes.find(q => q.id === id);
   if (quote) {
     quote.status = newStatus;
+    if (newStatus === 'Liquidado' && quote.totals) {
+      const total = Number(quote.totals.total) || 0;
+      quote.totals.depositAmount = total;
+      quote.totals.balanceAmount = 0;
+      quote.totals.balance = 0;
+    }
     saveStorage();
     renderHistoryTable();
+    renderReport();
   }
+}
+
+function markQuoteAsPaid(id) {
+  const quote = state.quotes.find(q => q.id === id);
+  if (!quote) return;
+  updateQuoteStatus(id, 'Liquidado');
 }
 
 function duplicateQuote(id) {
@@ -696,7 +731,134 @@ function deleteQuote(id) {
     state.quotes = state.quotes.filter(q => q.id !== id);
     saveStorage();
     renderHistoryTable();
+    renderReport();
   }
+}
+
+// ============================================================================
+// REPORTERÍA MENSUAL
+// ============================================================================
+
+function getMonthlyQuotes() {
+  const monthInput = document.getElementById('reportMonth');
+  const month = monthInput ? monthInput.value : new Date().toISOString().slice(0, 7);
+
+  return (state.quotes || [])
+    .filter(q => typeof q.date === 'string' && q.date.slice(0, 7) === month)
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
+}
+
+function renderReport() {
+  const monthInput = document.getElementById('reportMonth');
+  if (!monthInput) return;
+
+  if (!monthInput.value) {
+    monthInput.value = new Date().toISOString().slice(0, 7);
+  }
+
+  const quotes = getMonthlyQuotes();
+  const closed = quotes.filter(q =>
+    q.status === 'Aprobada' || q.status === 'Facturada' || q.status === 'Liquidado'
+  );
+
+  const sum = (items, getter) => items.reduce((total, item) => total + (Number(getter(item)) || 0), 0);
+  const quotedTotal = sum(quotes, q => q.totals && q.totals.total);
+  const closedTotal = sum(closed, q => q.totals && q.totals.total);
+  const depositTotal = sum(quotes, q => q.totals && q.totals.depositAmount);
+  const balanceTotal = sum(quotes, q => q.totals && (q.totals.balanceAmount ?? q.totals.balance));
+
+  document.getElementById('reportQuoteCount').textContent = quotes.length;
+  document.getElementById('reportClosedCount').textContent = closed.length;
+  document.getElementById('reportQuotedTotal').textContent = formatCurrency(quotedTotal);
+  document.getElementById('reportClosedTotal').textContent = formatCurrency(closedTotal);
+  document.getElementById('reportDepositTotal').textContent = formatCurrency(depositTotal);
+  document.getElementById('reportBalanceTotal').textContent = formatCurrency(balanceTotal);
+  document.getElementById('reportPendingCount').textContent = quotes.filter(q => q.status === 'Pendiente').length;
+  document.getElementById('reportRejectedCount').textContent = quotes.filter(q => q.status === 'Rechazada').length;
+
+  const [year, month] = monthInput.value.split('-').map(Number);
+  const monthName = new Intl.DateTimeFormat('es-MX', { month: 'long', year: 'numeric' })
+    .format(new Date(year, month - 1, 1));
+  document.getElementById('reportMonthSubtitle').textContent =
+    `Resumen de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)} · ${quotes.length} cotización(es)`;
+
+  const tbody = document.getElementById('reportTableBody');
+  if (!quotes.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" class="py-10 text-center text-slate-400">
+          <i data-lucide="calendar-x" class="w-8 h-8 mx-auto mb-2 text-slate-300"></i>
+          <p class="font-medium">No hay ventas registradas en este mes</p>
+        </td>
+      </tr>`;
+  } else {
+    tbody.innerHTML = quotes.map(q => {
+      const totals = q.totals || {};
+      let statusClass = 'bg-amber-100 text-amber-800';
+      if (q.status === 'Aprobada') statusClass = 'bg-emerald-100 text-emerald-800';
+      if (q.status === 'Facturada') statusClass = 'bg-blue-100 text-blue-800';
+      if (q.status === 'Liquidado') statusClass = 'bg-teal-100 text-teal-800';
+      if (q.status === 'Rechazada') statusClass = 'bg-rose-100 text-rose-800';
+
+      return `
+        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+          <td class="py-3 px-3 font-bold text-blue-600">${escapeHtml(q.folio || '')}</td>
+          <td class="py-3 px-3 text-slate-600">${escapeHtml(q.date || '')}</td>
+          <td class="py-3 px-3 font-semibold text-slate-900">${escapeHtml(q.client && q.client.name ? q.client.name : '')}</td>
+          <td class="py-3 px-3 text-slate-600">${escapeHtml(q.responsible && q.responsible.name ? q.responsible.name : '-')}</td>
+          <td class="py-3 px-3 text-center text-slate-600">${Array.isArray(q.items) ? q.items.length : 0}</td>
+          <td class="py-3 px-3 text-right text-slate-600">${formatCurrency(totals.subtotal)}</td>
+          <td class="py-3 px-3 text-right font-black text-slate-900">${formatCurrency(totals.total)}</td>
+          <td class="py-3 px-3 text-right text-indigo-700">${formatCurrency(totals.depositAmount)}</td>
+          <td class="py-3 px-3 text-right text-amber-700">${formatCurrency(totals.balanceAmount ?? totals.balance)}</td>
+          <td class="py-3 px-3 text-center">
+            <span class="inline-block rounded px-2 py-1 text-[11px] font-semibold ${statusClass}">${escapeHtml(q.status || 'Pendiente')}</span>
+          </td>
+        </tr>`;
+    }).join('');
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+function exportReportCsv() {
+  const quotes = getMonthlyQuotes();
+  if (!quotes.length) {
+    alert('No hay datos en el mes seleccionado para exportar.');
+    return;
+  }
+
+  const csvEscape = value => `"${String(value ?? '').replace(/"/g, '""')}"`;
+  const rows = [[
+    'Folio', 'Fecha', 'Cliente', 'Telefono', 'Vendedor', 'Partidas',
+    'Subtotal', 'Total', 'Anticipo', 'Saldo', 'Estado'
+  ]];
+
+  quotes.forEach(q => {
+    const totals = q.totals || {};
+    rows.push([
+      q.folio || '',
+      q.date || '',
+      q.client && q.client.name ? q.client.name : '',
+      q.client && q.client.phone ? q.client.phone : '',
+      q.responsible && q.responsible.name ? q.responsible.name : '',
+      Array.isArray(q.items) ? q.items.length : 0,
+      Number(totals.subtotal) || 0,
+      Number(totals.total) || 0,
+      Number(totals.depositAmount) || 0,
+      Number(totals.balanceAmount ?? totals.balance) || 0,
+      q.status || 'Pendiente'
+    ]);
+  });
+
+  const csv = '\uFEFF' + rows.map(row => row.map(csvEscape).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `reporteria_ventas_${document.getElementById('reportMonth').value}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
 }
 
 // ============================================================================
@@ -1265,6 +1427,7 @@ function importDataBackup(event) {
         saveStorage();
         loadCompanyConfigForm();
         renderHistoryTable();
+        renderReport();
         alert('¡Respaldo restaurado con éxito!');
       } else {
         alert('El archivo no contiene un formato de respaldo válido.');
